@@ -1,0 +1,49 @@
+:root {
+  --bg0: #0f1419;
+  --bg1: #1a2332;
+  --bg2: #243044;
+  --ink: #e8eef6;
+  --muted: #8fa3b8;
+  --line: rgba(232, 238, 246, 0.12);
+  --accent: #3d9a7a;
+  --accent-2: #4a8fd4;
+  --danger: #e06c75;
+  --ok: #7ec8a3;
+  --radius: 10px;
+  --font: "Segoe UI", "Helvetica Neue", sans-serif;
+  --display: "Segoe UI Semibold", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1e3a4f 0%, transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, #1a3d34 0%, transparent 50%),
+    linear-gradient(165deg, var(--bg0), var(--bg1) 45%, #121820);
+  font-family: var(--font);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}

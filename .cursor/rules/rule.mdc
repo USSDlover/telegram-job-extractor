@@ -1,0 +1,26 @@
+---
+description: Project guidelines for Telegram Job Extractor architecture, async I/O, local AI, and frontend integrations.
+globs: **/*
+alwaysApply: true
+---
+
+# Technical Standards & Rules
+
+## 1. Stack Principles
+- **Backend**: FastAPI (Python 3.11+), Telethon for async Telegram API operations, Pydantic v2 for schema validation.
+- **AI / LLM**: Local Ollama instance using `gemma2`. Enforce JSON outputs via Pydantic schemas (`model_json_schema()`).
+- **Frontend**: React (Vite-based build), Tailwind CSS or standard clean CSS.
+- **Storage**: Safe async file operations on `jobs.json`.
+
+## 2. Code Quality & Async Safety
+- **Async I/O**: Use `asyncio.Lock()` or atomic file replaces when reading and writing to `jobs.json` to prevent race conditions during background scraping.
+- **Error Handling**: Gracefully handle Telegram API exceptions (e.g., channel unavailable, rate limits) and Ollama connection timeouts. Never crash the FastAPI server due to an extraction error on a single message.
+- **Pydantic Schemas**: Keep domain models strongly typed. Ensure job objects always return fallback default values if extraction fields are missing.
+
+## 3. Frontend Standards
+- Component architecture must clearly decouple Scraper Controls (`ControlPanel.jsx`) from Content Viewing (`JobDashboard.jsx`).
+- Avoid mixing network logic directly inside JSX render methods; use dedicated API wrapper functions.
+
+## 4. Documentation Tracking
+- Keep system architecture details up to date in `docs/SYSTEM.md`.
+- Continuously append design rationale, completed milestones, and pending work items in `docs/PROGRESS.md`.
