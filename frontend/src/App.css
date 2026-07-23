@@ -451,6 +451,54 @@
   border-color: color-mix(in srgb, var(--accent-2) 40%, var(--line));
 }
 
+.job-card.selected {
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent-2) 8%, var(--bg0));
+}
+
+.selection-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0.85rem 0 0.35rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.select-all-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.selection-count {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.selection-toolbar .btn.danger {
+  margin-left: auto;
+}
+
+.job-select {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+.job-select input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent-2);
+}
+
 .workflow-step {
   margin-top: 1rem;
   padding-top: 0.35rem;
@@ -727,5 +775,91 @@
 
 .activity-msg {
   color: color-mix(in srgb, var(--ink) 90%, var(--muted));
+  word-break: break-word;
+}
+
+.activity-msg-wrap {
+  min-width: 0;
+}
+
+.activity-msg-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem 0.5rem;
+}
+
+.activity-msg-line .activity-msg {
+  flex: 1 1 12rem;
+}
+
+.btn.tiny.activity-expand {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+.log-channel-chip {
+  display: inline-block;
+  margin: 0 0.1rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, #4a8fd4 28%, transparent);
+  color: #9ec5f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.activity-row.empty .activity-msg {
+  color: color-mix(in srgb, var(--ink) 70%, #e6c07b);
+}
+
+.activity-detail {
+  margin-top: 0.4rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.activity-detail p {
+  margin: 0;
+}
+
+.detail-channels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.detail-error {
+  color: #f0a0a6;
+}
+
+.detail-snippets {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.detail-snippets li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem;
+  align-items: start;
+}
+
+.snippet-text {
+  color: var(--muted);
   word-break: break-word;
 }

@@ -132,6 +132,47 @@ async def delete_job(job_id: str) -> bool:
         return deleted
 
 
+async def delete_jobs_bulk(job_ids: Iterable[str]) -> dict[str, Any]:
+    """
+    Remove multiple jobs by id or message_id in one locked write.
+    Returns {deleted_count, deleted_ids, not_found}.
+    """
+    needles = {str(j).strip() for j in (job_ids or []) if str(j).strip()}
+    if not needles:
+        return {"deleted_count": 0, "deleted_ids": [], "not_found": []}
+
+    async with _lock:
+        existing = await _read_unlocked()
+        kept: list[dict[str, Any]] = []
+        deleted_ids: list[str] = []
+        matched: set[str] = set()
+        for job in existing:
+            jid = str(job.get("id") or "")
+            mid = str(job.get("message_id") or "")
+            hit = None
+            if jid and jid in needles:
+                hit = jid
+            elif mid and mid in needles:
+                hit = mid
+            if hit is not None:
+                deleted_ids.append(jid or mid)
+                matched.add(hit)
+                if jid:
+                    matched.add(jid)
+                if mid:
+                    matched.add(mid)
+                continue
+            kept.append(job)
+        if deleted_ids:
+            await _write_unlocked(kept)
+        not_found = sorted(needles - matched)
+        return {
+            "deleted_count": len(deleted_ids),
+            "deleted_ids": deleted_ids,
+            "not_found": not_found,
+        }
+
+
 async def clear_all_jobs() -> int:
     """Wipe jobs.json to an empty list. Returns how many jobs were removed."""
     async with _lock:
@@ -310,9 +351,9 @@ async def save_debug_sample(data: dict[str, Any]) -> dict[str, Any]:
         except json.JSONDecodeError:
             existing = []
         existing.append(record)
-        # Cap history to keep file manageable
-        if len(existing) > 50:
-            existing = existing[-50:]
+        # Cap history to keep file manageable (per-chunk + summary rows)
+        if len(existing) > 120:
+            existing = existing[-120:]
         payload = json.dumps(existing, ensure_ascii=False, indent=2)
         tmp = path.with_suffix(".json.tmp")
         async with aiofiles.open(tmp, "w", encoding="utf-8") as f:

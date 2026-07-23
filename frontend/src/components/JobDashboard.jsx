@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { clearAllJobs, deleteJob, fetchCategories, fetchJobs } from '../api'
+import {
+  bulkDeleteJobs,
+  clearAllJobs,
+  deleteJob,
+  fetchCategories,
+  fetchJobs,
+} from '../api'
 
 const SORT_OPTIONS = [
   { value: 'date_desc', label: 'Newest First' },
@@ -32,6 +38,10 @@ function isTelegramUrl(url) {
   } catch {
     return /t\.me\//i.test(url || '')
   }
+}
+
+function jobKey(job) {
+  return job?.id || String(job?.message_id || '')
 }
 
 function sortJobsClient(jobs, sortBy) {
@@ -69,6 +79,8 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
   const [clearing, setClearing] = useState(false)
+  const [selectedJobIds, setSelectedJobIds] = useState(() => new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const refreshAll = useCallback(async () => {
     setLoading(true)
@@ -84,12 +96,18 @@ export default function JobDashboard({ refreshToken = 0 }) {
         }),
         fetchCategories(),
       ])
-      setJobs(jobsData.jobs || [])
+      const nextJobs = jobsData.jobs || []
+      setJobs(nextJobs)
       setCategories(catsData.categories || [])
       const nextCats = catsData.categories || []
       if (category && !nextCats.includes(category)) {
         setCategory('')
       }
+      const visibleKeys = new Set(nextJobs.map(jobKey).filter(Boolean))
+      setSelectedJobIds((prev) => {
+        const pruned = new Set([...prev].filter((id) => visibleKeys.has(id)))
+        return pruned.size === prev.size ? prev : pruned
+      })
     } catch (err) {
       setError(err.message || 'Failed to refresh feed')
     } finally {
@@ -102,15 +120,53 @@ export default function JobDashboard({ refreshToken = 0 }) {
   }, [refreshAll, refreshToken])
 
   const visibleJobs = useMemo(() => sortJobsClient(jobs, sortBy), [jobs, sortBy])
+  const visibleIds = useMemo(
+    () => visibleJobs.map(jobKey).filter(Boolean),
+    [visibleJobs],
+  )
+  const selectedCount = selectedJobIds.size
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedJobIds.has(id))
+  const someVisibleSelected =
+    visibleIds.some((id) => selectedJobIds.has(id)) && !allVisibleSelected
+
+  function toggleJobSelected(jobId) {
+    if (!jobId) return
+    setSelectedJobIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(jobId)) next.delete(jobId)
+      else next.add(jobId)
+      return next
+    })
+  }
+
+  function toggleSelectAllVisible() {
+    setSelectedJobIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev)
+        visibleIds.forEach((id) => next.delete(id))
+        return next
+      }
+      const next = new Set(prev)
+      visibleIds.forEach((id) => next.add(id))
+      return next
+    })
+  }
 
   async function handleDelete(job) {
-    const jobId = job.id || String(job.message_id || '')
+    const jobId = jobKey(job)
     if (!jobId) return
     const ok = window.confirm(`Delete job “${job.title || jobId}”?`)
     if (!ok) return
 
     setDeletingId(jobId)
-    setJobs((prev) => prev.filter((j) => (j.id || String(j.message_id)) !== jobId))
+    setJobs((prev) => prev.filter((j) => jobKey(j) !== jobId))
+    setSelectedJobIds((prev) => {
+      if (!prev.has(jobId)) return prev
+      const next = new Set(prev)
+      next.delete(jobId)
+      return next
+    })
     try {
       await deleteJob(jobId)
       const catsData = await fetchCategories()
@@ -126,6 +182,37 @@ export default function JobDashboard({ refreshToken = 0 }) {
     }
   }
 
+  async function handleBulkDelete() {
+    const ids = [...selectedJobIds]
+    if (!ids.length) return
+    const ok = window.confirm(
+      `Are you sure you want to delete ${ids.length} selected job${ids.length === 1 ? '' : 's'}?`,
+    )
+    if (!ok) return
+
+    setBulkDeleting(true)
+    setError('')
+    const idSet = new Set(ids)
+    setJobs((prev) => prev.filter((j) => !idSet.has(jobKey(j))))
+    setSelectedJobIds(new Set())
+    try {
+      const result = await bulkDeleteJobs(ids)
+      const catsData = await fetchCategories()
+      setCategories(catsData.categories || [])
+      if (category && !(catsData.categories || []).includes(category)) {
+        setCategory('')
+      }
+      if (result.not_found?.length) {
+        setError(`Deleted ${result.deleted_count}; ${result.not_found.length} id(s) were already gone.`)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to delete selected jobs')
+      await refreshAll()
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
   async function handleClearAll() {
     if (jobs.length === 0 && categories.length === 0) return
     const ok = window.confirm('Are you sure you want to delete all extracted jobs?')
@@ -136,6 +223,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
     setJobs([])
     setCategories([])
     setCategory('')
+    setSelectedJobIds(new Set())
     try {
       await clearAllJobs()
     } catch (err) {
@@ -145,6 +233,8 @@ export default function JobDashboard({ refreshToken = 0 }) {
       setClearing(false)
     }
   }
+
+  const busy = loading || clearing || bulkDeleting
 
   return (
     <section className="panel job-dashboard">
@@ -159,7 +249,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              disabled={loading}
+              disabled={busy}
             >
               <option value="">All categories</option>
               {categories.map((c) => (
@@ -174,7 +264,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              disabled={loading}
+              disabled={busy}
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -183,7 +273,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
               ))}
             </select>
           </label>
-          <button type="button" className="btn" onClick={refreshAll} disabled={loading || clearing}>
+          <button type="button" className="btn" onClick={refreshAll} disabled={busy}>
             {loading ? (
               <>
                 <span className="spinner" aria-hidden />
@@ -197,7 +287,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
             type="button"
             className="btn danger-outline"
             onClick={handleClearAll}
-            disabled={loading || clearing || (jobs.length === 0 && categories.length === 0)}
+            disabled={busy || (jobs.length === 0 && categories.length === 0)}
           >
             {clearing ? 'Clearing…' : 'Clear All Jobs'}
           </button>
@@ -213,7 +303,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
               type="button"
               className={`preset-pill ${datePreset === p.value ? 'active' : ''}`}
               onClick={() => setDatePreset(p.value)}
-              disabled={loading}
+              disabled={busy}
             >
               {p.label}
             </button>
@@ -227,7 +317,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                disabled={loading}
+                disabled={busy}
               />
             </label>
             <label className="field inline">
@@ -236,12 +326,48 @@ export default function JobDashboard({ refreshToken = 0 }) {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                disabled={loading}
+                disabled={busy}
               />
             </label>
           </div>
         )}
       </div>
+
+      {visibleJobs.length > 0 && (
+        <div className="selection-toolbar" role="toolbar" aria-label="Bulk job selection">
+          <label className="select-all-control">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someVisibleSelected
+              }}
+              onChange={toggleSelectAllVisible}
+              disabled={busy || visibleIds.length === 0}
+              aria-label="Select all visible jobs"
+            />
+            <span>Select All</span>
+          </label>
+          {selectedCount > 0 && (
+            <span className="selection-count">{selectedCount} selected</span>
+          )}
+          <button
+            type="button"
+            className="btn danger"
+            onClick={handleBulkDelete}
+            disabled={busy || selectedCount === 0}
+          >
+            {bulkDeleting ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Deleting…
+              </>
+            ) : (
+              `Delete Selected${selectedCount ? ` (${selectedCount})` : ''}`
+            )}
+          </button>
+        </div>
+      )}
 
       {error && <p className="status err">{error}</p>}
       {loading && jobs.length === 0 && <p className="muted">Loading jobs…</p>}
@@ -254,17 +380,27 @@ export default function JobDashboard({ refreshToken = 0 }) {
 
       <ul className="job-list">
         {visibleJobs.map((job) => {
-          const jobId = job.id || String(job.message_id || '')
+          const jobId = jobKey(job)
+          const selected = selectedJobIds.has(jobId)
           return (
-            <li key={jobId} className="job-card">
+            <li key={jobId} className={`job-card ${selected ? 'selected' : ''}`}>
               <div className="job-top">
+                <label className="job-select">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => toggleJobSelected(jobId)}
+                    disabled={busy || !jobId}
+                    aria-label={`Select ${job.title || jobId}`}
+                  />
+                </label>
                 <h3>{job.title || 'Untitled'}</h3>
                 {job.category && <span className="badge">{job.category}</span>}
                 <button
                   type="button"
                   className="btn tiny danger-outline job-delete"
                   onClick={() => handleDelete(job)}
-                  disabled={deletingId === jobId}
+                  disabled={busy || deletingId === jobId}
                   aria-label={`Delete ${job.title || jobId}`}
                 >
                   {deletingId === jobId ? '…' : 'Delete'}

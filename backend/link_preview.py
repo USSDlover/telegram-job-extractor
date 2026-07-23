@@ -56,6 +56,17 @@ MAX_LINKS_PER_MESSAGE = 3
 MAX_DESC_CHARS = 1200
 MAX_PAGE_TEXT_CHARS = 3500
 
+_ARMENIAN_RE = re.compile(r"[\u0530-\u058F]")
+_CYRILLIC_RE = re.compile(r"[\u0400-\u04FF]")
+
+
+def is_short_non_english(text: str, *, max_chars: int = 280) -> bool:
+    """True for brief Armenian / Russian captions that need translation + enrichment."""
+    stripped = (text or "").strip()
+    if not stripped or len(stripped) > max_chars:
+        return False
+    return bool(_ARMENIAN_RE.search(stripped) or _CYRILLIC_RE.search(stripped))
+
 
 def is_telegram_url(url: str) -> bool:
     host = (urlparse(url).hostname or "").lower()
@@ -242,22 +253,28 @@ def format_metadata_block(metadata_list: list[dict[str, Any]]) -> str:
 
 
 def should_enrich_message(text: str, extra_urls: Sequence[str] | None = None) -> bool:
-    """Short teaser / link-only posts that need page metadata."""
+    """Short teaser / link-only / brief HY-RU posts that need page metadata."""
     extra = [u for u in (extra_urls or []) if u]
+    stripped = (text or "").strip()
+    urls = extract_urls(stripped, include_telegram=True)
+    has_urls = bool(urls or extra)
+
+    # Brief Armenian/Russian title + link — always fetch OG / page context
+    if is_short_non_english(stripped) and has_urls:
+        return True
+
     if extra:
         # Hidden webpage/entity links often pair with short captions
-        if not text or len(text.strip()) < 400:
+        if not stripped or len(stripped) < 400:
             return True
-    if not text or not text.strip():
+    if not stripped:
         return bool(extra)
-    stripped = text.strip()
-    urls = extract_urls(stripped)
     if not urls and not extra:
         return False
     if len(stripped) < SHORT_MESSAGE_CHARS:
         return True
     without_urls = URL_RE.sub("", stripped).strip()
-    return len(without_urls) < 80 and (bool(urls) or bool(extra))
+    return len(without_urls) < 80 and has_urls
 
 
 async def enrich_message_with_link_metadata(

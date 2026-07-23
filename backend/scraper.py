@@ -284,7 +284,7 @@ async def discover_channels_categories(
     # Prefer a slightly smaller default for multi-channel discovery responsiveness
     if sample_limit_per_channel is None and len(channel_list) > 3:
         limit = min(limit, 15)
-    all_samples: List[str] = []
+    all_samples: List[dict] = []
     per_channel: dict[str, int] = {}
     errors: list[str] = []
 
@@ -310,7 +310,9 @@ async def discover_channels_categories(
                 try:
                     samples = await _sample_with_client(client, channel, limit)
                     per_channel[channel] = len(samples)
-                    all_samples.extend(samples)
+                    all_samples.extend(
+                        {"channel": channel, "text": text} for text in samples
+                    )
                 except (
                     ChannelPrivateError,
                     ChannelInvalidError,
@@ -333,8 +335,9 @@ async def discover_channels_categories(
 
     await broadcast_log(
         "FETCHING_POSTS",
-        f"Collected {len(all_samples)} sample posts across {len(channel_list)} channel(s).",
-        {"sample_count": len(all_samples), "per_channel": per_channel},
+        f"Collected {len(all_samples)} sample posts across {len(channel_list)} channel(s) "
+        f"({', '.join(f'{ch}:{n}' for ch, n in per_channel.items())}).",
+        {"sample_count": len(all_samples), "per_channel": per_channel, "channels": channel_list},
     )
 
     result = await discover_categories_from_samples(
@@ -342,12 +345,11 @@ async def discover_channels_categories(
     )
     await broadcast_log(
         "DISCOVERED_CATEGORIES",
-        f"AI returned {len(result.discovered_categories)} categories and "
-        f"{len(result.suggested_titles)} titles across {len(channel_list)} channel(s).",
+        f"AI returned {len(result.discovered_categories)} categories "
+        f"across {len(channel_list)} channel(s).",
         {
             "channels": channel_list,
             "discovered_categories": result.discovered_categories,
-            "suggested_titles": result.suggested_titles,
             "sample_count": len(all_samples),
             "per_channel": per_channel,
             "errors": errors,
@@ -357,7 +359,6 @@ async def discover_channels_categories(
         "success": True,
         "channels": channel_list,
         "discovered_categories": result.discovered_categories,
-        "suggested_titles": result.suggested_titles,
         "sample_count": len(all_samples),
         "per_channel": per_channel,
         "errors": errors,

@@ -24,6 +24,7 @@ from scraper import (
 from storage import (
     clear_all_jobs,
     delete_job,
+    delete_jobs_bulk,
     get_distinct_categories,
     get_jobs_sorted,
     read_debug_samples,
@@ -203,6 +204,10 @@ async def list_jobs(
     }
 
 
+class BulkDeleteRequest(BaseModel):
+    job_ids: List[str] = Field(default_factory=list)
+
+
 @app.delete("/api/jobs/clear-all")
 async def clear_jobs():
     """Wipe all stored jobs (jobs.json → []). Must be registered before /{job_id}."""
@@ -216,6 +221,31 @@ async def clear_jobs():
         "success": True,
         "message": "All jobs cleared successfully",
         "removed": removed,
+    }
+
+
+@app.post("/api/jobs/bulk-delete")
+async def bulk_delete_jobs(payload: BulkDeleteRequest):
+    """Delete multiple jobs by id (or message_id). Registered before /{job_id}."""
+    ids = [str(j).strip() for j in (payload.job_ids or []) if str(j).strip()]
+    if not ids:
+        raise HTTPException(status_code=400, detail="job_ids must be a non-empty list")
+    result = await delete_jobs_bulk(ids)
+    await broadcast_log(
+        "JOBS_BULK_DELETED",
+        f"Bulk deleted {result['deleted_count']} job(s).",
+        {
+            "deleted_count": result["deleted_count"],
+            "deleted_ids": result["deleted_ids"],
+            "not_found": result["not_found"],
+        },
+    )
+    return {
+        "success": True,
+        "deleted_count": result["deleted_count"],
+        "deleted_ids": result["deleted_ids"],
+        "not_found": result["not_found"],
+        "message": f"Deleted {result['deleted_count']} job(s)",
     }
 
 

@@ -70,7 +70,6 @@ Legacy single-channel `channel` is still accepted and merged into `channels`.
 {
   "channels": ["@tech_jobs", "@frontend_jobs", "@remote_work"],
   "discovered_categories": ["Engineering", "Hospitality"],
-  "suggested_titles": ["Frontend Developer", "Full Stack", "Waiter"],
   "sample_count": 54,
   "per_channel": { "@tech_jobs": 20, "@frontend_jobs": 18, "@remote_work": 16 },
   "errors": []
@@ -90,8 +89,7 @@ Trigger background scrape + AI extraction across all configured channels.
 ```json
 {
   "channels": ["@tech_jobs", "@frontend_jobs"],
-  "selected_categories": ["Engineering"],
-  "selected_titles": ["Frontend Developer", "Full Stack"]
+  "selected_categories": ["Engineering"]
 }
 ```
 
@@ -104,6 +102,8 @@ Trigger background scrape + AI extraction across all configured channels.
   "message": "Extraction pipeline started for 2 channel(s)"
 }
 ```
+
+`selected_titles` is accepted for backward compatibility but ignored by the Control Board (categories-only filtering).
 
 ---
 
@@ -154,6 +154,30 @@ Atomically wipe `jobs.json` to `[]` (registered before `/{job_id}` so the path i
   "success": true,
   "message": "All jobs cleared successfully",
   "removed": 42
+}
+```
+
+---
+
+### `POST /api/jobs/bulk-delete`
+
+Delete multiple jobs by `id` (or `message_id`) in one locked write.
+
+**Request body**
+
+```json
+{ "job_ids": ["channel_123", "channel_456"] }
+```
+
+**Response `200`**
+
+```json
+{
+  "success": true,
+  "deleted_count": 2,
+  "deleted_ids": ["channel_123", "channel_456"],
+  "not_found": [],
+  "message": "Deleted 2 job(s)"
 }
 ```
 
@@ -219,14 +243,13 @@ Schemas are Pydantic v2 models; Ollama is instructed to return JSON matching `mo
 | `apply_links`        | `List[str]`    | External apply / contact URLs |
 | `translated_summary` | `str`          | Concise English summary of requirements |
 
-**Persistence rule**: Only persist when `is_job_posting` is `true` **and** `apply_links` is non-empty (and matches selected category/title filters when provided).
+**Persistence rule**: Persist when `is_job_posting` is `true` and the job matches selected category filters (Telegram URL is injected when no external apply link exists).
 
 ### `CategoryDiscoveryResult`
 
 | Field                   | Type       | Description |
 |-------------------------|------------|-------------|
-| `discovered_categories` | `List[str]`| Distinct job categories in samples |
-| `suggested_titles`      | `List[str]`| Normalized job titles for UI checkboxes |
+| `discovered_categories` | `List[str]`| Distinct English job categories in samples |
 
 ## Configuration
 

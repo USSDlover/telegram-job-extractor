@@ -26,14 +26,13 @@ export async function discoverChannel(channel) {
 export async function startExtraction(
   channels,
   selectedCategories,
-  selectedTitles,
   { datePreset = 'today', startDate, endDate } = {},
 ) {
   const list = Array.isArray(channels) ? channels : [channels]
   const body = {
     channels: list,
     selected_categories: selectedCategories,
-    selected_titles: selectedTitles,
+    selected_titles: [],
     date_preset: datePreset,
   }
   if (datePreset === 'custom') {
@@ -83,6 +82,15 @@ export async function deleteJob(jobId) {
 export async function clearAllJobs() {
   const res = await fetch('/api/jobs/clear-all', {
     method: 'DELETE',
+  })
+  return parseResponse(res)
+}
+
+export async function bulkDeleteJobs(jobIds) {
+  const res = await fetch('/api/jobs/bulk-delete', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ job_ids: jobIds }),
   })
   return parseResponse(res)
 }

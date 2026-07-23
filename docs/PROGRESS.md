@@ -35,6 +35,12 @@
 | Telethon entity / webpage URL extraction | Done | `MessageEntityTextUrl` + `media.webpage.url` |
 | Deep job-board page scrape | Done | `job.am` / `staff.am` / etc. body text → Gemma |
 | Bulk clear all jobs | Done | `DELETE /api/jobs/clear-all` + Clear All Jobs UI |
+| Chunk channel attribution | Done | Per-chunk `@channel` tags in SSE + debug_samples |
+| Suggested titles removed | Done | Categories-only discovery UI + schema |
+| HY/RU short-title prompts | Done | Translate-first + short title+link = valid |
+| Prompt noise sanitization | Done | Clean Post N + URL Slug lines for Gemma |
+| URL slug category fallback | Done | Deterministic slug map when LLM returns 0 |
+| Bulk select / delete jobs | Done | Checkboxes + `POST /api/jobs/bulk-delete` |
 
 ## Architectural Decisions
 
@@ -59,6 +65,11 @@
 19. **Hidden link extraction** — Apply URLs are taken from plain text, Telethon `entities` (`MessageEntityTextUrl` / `MessageEntityUrl`), and `message.media.webpage.url`. External destinations (e.g. `job.am`) become primary `apply_links`; `telegram_url` stays as metadata / last-resort fallback.
 20. **Deep link preview scrape** — For known Armenian/regional job boards, `link_preview.py` fetches OG metadata plus main page body text and appends it to the Gemma payload.
 21. **Bulk job erasure** — `DELETE /api/jobs/clear-all` atomically writes `[]` under the storage lock; Job Feed exposes a confirmed **Clear All Jobs** control.
+22. **Chunk-level discovery diagnostics** — Discovery samples are attributed per channel (`{channel, text}`). Each Ollama chunk logs `Chunk X/Y (@ch1, @ch2 - N posts)…`, persists a `debug_samples.json` snapshot (`channels_in_chunk`, prompt, raw AI response, extracted labels), and the Activity Console renders `@handle` chips plus an **Inspect** expander for empty/failed chunks.
+23. **Categories-only discovery** — `suggested_titles` removed from Pydantic discovery schema, API payloads, and Control Board UI; extraction filters by selected categories only.
+24. **Translate-first short HY/RU posts** — Discovery and extraction prompts require Armenian/Russian → English before classification, treat 1–5 word title+link posts as valid jobs, and force link-preview enrichment for short non-English captions with URLs.
+25. **Sanitized discovery prompts + slug fallback** — Noisy `[Telegram Message]` / link-metadata blocks are stripped into `Post N: title (URL Slug: …)` lines. `extract_keywords_from_urls()` maps job.am-style slugs (e.g. `vacharqi-menejer` → Sales) and a **Fallback Engine** fills categories when Gemma returns empty.
+26. **Bulk job selection** — Job Feed checkboxes + Select All toolbar call `POST /api/jobs/bulk-delete` with confirmed multi-id removal under the storage lock.
 
 ## Future Work
 

@@ -68,12 +68,8 @@ export default function ControlPanel({ onExtractionStarted }) {
   const [channels, setChannels] = useState([])
   const [storedCategories, setStoredCategories] = useState([])
   const [discoveredCategories, setDiscoveredCategories] = useState([])
-  const [suggestedTitles, setSuggestedTitles] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
-  const [selectedTitles, setSelectedTitles] = useState([])
-  const [titleInput, setTitleInput] = useState('')
   const [categoryQuery, setCategoryQuery] = useState('')
-  const [titleQuery, setTitleQuery] = useState('')
   const [extractPreset, setExtractPreset] = useState('today')
   const [extractStartDate, setExtractStartDate] = useState('')
   const [extractEndDate, setExtractEndDate] = useState('')
@@ -112,12 +108,6 @@ export default function ControlPanel({ onExtractionStarted }) {
     return categoryOptions.filter((c) => c.toLowerCase().includes(q))
   }, [categoryOptions, categoryQuery])
 
-  const filteredTitles = useMemo(() => {
-    const q = titleQuery.trim().toLowerCase()
-    if (!q) return suggestedTitles
-    return suggestedTitles.filter((t) => t.toLowerCase().includes(q))
-  }, [suggestedTitles, titleQuery])
-
   useEffect(() => {
     if (busy || discovering || pipelineBusy || isExtracting) {
       setBusyHint(liveStatus || 'Working…')
@@ -129,10 +119,8 @@ export default function ControlPanel({ onExtractionStarted }) {
     const event = latestByStage.DISCOVERED_CATEGORIES
     if (!event?.data) return
     const cats = dedupeLabels(event.data.discovered_categories || [])
-    const titles = dedupeLabels(event.data.suggested_titles || [])
-    if (cats.length || titles.length) {
+    if (cats.length) {
       setDiscoveredCategories(cats)
-      setSuggestedTitles(titles)
       setSampleCount(event.data.sample_count ?? null)
       setDiscoveryDone(true)
     }
@@ -184,21 +172,6 @@ export default function ControlPanel({ onExtractionStarted }) {
     setChannels((prev) => prev.filter((c) => c !== name))
   }
 
-  function addTitleChip() {
-    const parts = titleInput
-      .split(',')
-      .map((t) => normalizeLabel(t))
-      .filter(Boolean)
-    if (!parts.length) return
-    setSelectedTitles((prev) => mergeLabels(prev, parts))
-    setSuggestedTitles((prev) => mergeLabels(prev, parts))
-    setTitleInput('')
-  }
-
-  function removeTitle(title) {
-    setSelectedTitles((prev) => prev.filter((t) => t !== title))
-  }
-
   async function handleDiscover() {
     setError('')
     setStatus('')
@@ -209,17 +182,13 @@ export default function ControlPanel({ onExtractionStarted }) {
     try {
       const data = await discoverChannels(channels)
       const cats = dedupeLabels(data.discovered_categories || [])
-      const titles = dedupeLabels(data.suggested_titles || [])
       setDiscoveredCategories(cats)
-      setSuggestedTitles(titles)
       setSelectedCategories([])
-      setSelectedTitles([])
       setCategoryQuery('')
-      setTitleQuery('')
       setSampleCount(data.sample_count ?? null)
       setDiscoveryDone(true)
       setStatus(
-        `Discovered ${cats.length} categories and ${titles.length} titles from ${data.sample_count ?? 0} sample posts.`,
+        `Discovered ${cats.length} categories from ${data.sample_count ?? 0} sample posts.`,
       )
       await loadStoredCategories()
     } catch (err) {
@@ -258,7 +227,7 @@ export default function ControlPanel({ onExtractionStarted }) {
     setStopping(false)
     setIsExtracting(true)
     try {
-      const data = await startExtraction(channels, selectedCategories, selectedTitles, {
+      const data = await startExtraction(channels, selectedCategories, {
         datePreset: extractPreset,
         startDate: extractPreset === 'custom' ? extractStartDate || undefined : undefined,
         endDate: extractPreset === 'custom' ? extractEndDate || undefined : undefined,
@@ -373,7 +342,7 @@ export default function ControlPanel({ onExtractionStarted }) {
 
       {discoveryDone && (
         <div className="workflow-step">
-          <h3 className="step-title">2. Categories & titles</h3>
+          <h3 className="step-title">2. Categories</h3>
           {sampleCount != null && (
             <p className="muted">Samples analyzed: {sampleCount}</p>
           )}
@@ -433,99 +402,6 @@ export default function ControlPanel({ onExtractionStarted }) {
                 </div>
               )}
             </div>
-          </fieldset>
-
-          <fieldset className="option-box">
-            <legend>Suggested titles ({suggestedTitles.length})</legend>
-            <p className="muted option-hint">
-              Check discovered titles or add your own chips.
-            </p>
-            <div className="option-toolbar">
-              <button
-                type="button"
-                className="btn tiny"
-                disabled={locked || isExtracting || suggestedTitles.length === 0}
-                onClick={() => setSelectedTitles([...suggestedTitles])}
-              >
-                Select All
-              </button>
-              <button
-                type="button"
-                className="btn tiny"
-                disabled={locked || isExtracting}
-                onClick={() => setSelectedTitles([])}
-              >
-                Deselect All
-              </button>
-            </div>
-            {suggestedTitles.length > 15 && (
-              <input
-                className="option-search"
-                type="search"
-                placeholder="Filter titles…"
-                value={titleQuery}
-                onChange={(e) => setTitleQuery(e.target.value)}
-                disabled={locked || isExtracting}
-              />
-            )}
-            <div className="check-scroll">
-              <div className="check-grid">
-                {filteredTitles.map((title) => (
-                  <label key={title} className="check">
-                    <input
-                      type="checkbox"
-                      checked={selectedTitles.includes(title)}
-                      onChange={() =>
-                        setSelectedTitles((prev) => toggleValue(prev, title))
-                      }
-                      disabled={locked || isExtracting}
-                    />
-                    <span>{title}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="channel-add-row" style={{ marginTop: '0.65rem' }}>
-              <input
-                type="text"
-                placeholder="Add custom title…"
-                value={titleInput}
-                onChange={(e) => setTitleInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addTitleChip()
-                  }
-                }}
-                disabled={locked || isExtracting}
-              />
-              <button
-                type="button"
-                className="btn"
-                onClick={addTitleChip}
-                disabled={locked || isExtracting || !titleInput.trim()}
-              >
-                Add Title
-              </button>
-            </div>
-            {selectedTitles.length > 0 && (
-              <div className="channel-chips">
-                {selectedTitles.map((title) => (
-                  <span key={title} className="channel-chip">
-                    {title}
-                    <button
-                      type="button"
-                      className="chip-remove"
-                      aria-label={`Remove ${title}`}
-                      onClick={() => removeTitle(title)}
-                      disabled={locked || isExtracting}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
           </fieldset>
         </div>
       )}

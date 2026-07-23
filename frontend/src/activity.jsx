@@ -98,6 +98,7 @@ export function ActivityProvider({ children, onJobSaved, onDiscovered }) {
       'FETCHING_POSTS',
       'LINK_SCRAPER',
       'CALLING_OLLAMA',
+      'FALLBACK_ENGINE',
       'DISCOVERED_CATEGORIES',
       'EXTRACTION_QUEUED',
       'EXTRACTION_STARTED',
