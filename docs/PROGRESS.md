@@ -28,6 +28,10 @@
 | Category checklist UX | Done | Scroll, search, select-all, dedupe |
 | Extraction stop / cancel | Done | `POST /api/stop-extraction` + asyncio.Event |
 | HY/RU → English translation | Done | Strict multilingual Gemma prompts |
+| Job deletion | Done | `DELETE /api/jobs/{id}` + feed Delete button |
+| Simplified control board | Done | Discover → select → extract (restored) |
+| Telegram link fallback | Done | `https://t.me/channel/msg_id` when no apply URL |
+| Category sampling restored | Done | `sample_channel_categories` + Join & Discover UI |
 
 ## Architectural Decisions
 
@@ -37,16 +41,18 @@
 4. **Static Vite build mounted in FastAPI** — Single process serves API and UI in production; Vite dev server proxies `/api` during local frontend development.
 5. **Filter at extract time** — User-selected categories/titles gate what gets persisted, reducing noise in the dashboard.
 6. **SSE activity bus** — `broadcast_log(stage, message, data)` fans out structured events to all `EventSource` clients via asyncio queues + a short ring buffer.
-7. **UI state sync via events** — `DISCOVERED_CATEGORIES` updates Control Board checkboxes immediately; `JOB_SAVED` debounced-triggers Job Feed + category dropdown refresh.
-8. **Multi-channel aggregation** — Discovery samples each configured channel, concatenates texts, then runs Gemma 2. Extraction walks channels sequentially on one Telethon session.
+7. **UI state sync via events** — `JOB_SAVED` debounced-triggers Job Feed + category dropdown refresh.
+8. **Multi-channel aggregation** — Extraction walks channels sequentially on one Telethon session.
 9. **Top-right activity rail** — Desktop layout uses `grid-template-columns: 1fr 380px` with a sticky Activity Console.
 10. **Sort controls** — `GET /api/jobs?sort_by=` supports `date_desc`, `date_asc`, `category_asc`, `title_asc`.
-11. **Chunked discovery + debug samples** — Large multi-channel sample sets are split by post count / character budget (`DISCOVERY_CHUNK_POSTS`, `DISCOVERY_CHUNK_CHARS`), merged across chunks, and every prompt/raw response is appended to `debug_samples.json` for inspection via `GET /api/debug/samples`.
-12. **Date filtering** — `GET /api/jobs` accepts `preset` (`today`, `this_week`, `this_month`, `all_time`, `custom`) plus optional `start_date` / `end_date` (`YYYY-MM-DD`). Job Feed pills trigger re-fetch automatically.
-13. **Link metadata enrichment** — Short/link-only Telegram posts are enriched via `link_preview.py` (`httpx` + BeautifulSoup) using Open Graph / meta / headings before Gemma 2 runs. Failures never abort the pipeline; successes stream as `LINK_SCRAPER` SSE events and are stored under `enriched_metadata` in `debug_samples.json`.
-14. **Date-bounded Telethon scrape** — `POST /api/extract` accepts `date_preset` / custom dates; the scraper walks newest-first and **breaks** once `msg.date < start_date`, avoiding thousands of historical posts. Category labels are normalized (trim punctuation, case-insensitive dedupe) for both discovery UI and `GET /api/categories`.
-15. **Cooperative cancellation** — A shared `asyncio.Event` (`stop_scraper_event`) is cleared on each extract start and set by `POST /api/stop-extraction`. The Telethon loop checks the flag before each message / Ollama call and emits `EXTRACTION_STOP_REQUESTED` / `EXTRACTION_STOPPED` SSE events; the Control Board shows a red **Stop Extraction** button while running.
-16. **Strict multilingual English output** — Gemma prompts require detecting Armenian/Russian (and mixed) source text, translating titles/summaries to professional English, and never emitting Armenian script or Cyrillic in `title`, `category`, or `translated_summary` (optional `original_language` field retained).
+11. **Chunked discovery + debug samples** — Discovery APIs remain available for debugging; the Control Board no longer drives category discovery UI.
+12. **Date filtering** — `GET /api/jobs` accepts `preset` plus optional `start_date` / `end_date`.
+13. **Link metadata enrichment** — Short/link-only posts are enriched via Open Graph metadata before Gemma 2.
+14. **Date-bounded Telethon scrape** — Newest-first iteration breaks once `msg.date < start_date`.
+15. **Cooperative cancellation** — Shared `asyncio.Event` with Stop Extraction UI.
+16. **Strict multilingual English output** — Armenian/Russian source text translated to English fields; optional `original_language`.
+17. **Telegram apply fallback** — Every saved job gets at least one HTTP link: extracted external apply URLs when present, otherwise `https://t.me/{channel}/{message_id}`. Feed buttons label Telegram URLs as **View Telegram Post**.
+18. **Category sampling restored** — Control Board step 1 runs `POST /api/discover` via `sample_channel_categories()` (Telethon samples + link enrichment + Gemma 2). Discovered categories merge with stored `GET /api/categories` results; Ollama failures surface as HTTP 400/502 instead of empty silent lists. Steps 2–3 retain selection, date-bounded extract, stop, deletion, and Telegram fallbacks.
 
 ## Future Work
 

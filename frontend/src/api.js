@@ -73,6 +73,13 @@ export async function fetchCategories() {
   return parseResponse(res)
 }
 
+export async function deleteJob(jobId) {
+  const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+    method: 'DELETE',
+  })
+  return parseResponse(res)
+}
+
 export async function stopExtraction() {
   const res = await fetch('/api/stop-extraction', {
     method: 'POST',

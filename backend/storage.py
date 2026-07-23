@@ -108,6 +108,30 @@ async def upsert_jobs(new_jobs: list[dict[str, Any]]) -> int:
         return inserted
 
 
+async def delete_job(job_id: str) -> bool:
+    """
+    Remove a job by its unique `id` (preferred) or message_id string match.
+    Returns True if a record was deleted.
+    """
+    needle = (job_id or "").strip()
+    if not needle:
+        return False
+    async with _lock:
+        existing = await _read_unlocked()
+        kept: list[dict[str, Any]] = []
+        deleted = False
+        for job in existing:
+            jid = str(job.get("id") or "")
+            mid = str(job.get("message_id") or "")
+            if jid == needle or mid == needle:
+                deleted = True
+                continue
+            kept.append(job)
+        if deleted:
+            await _write_unlocked(kept)
+        return deleted
+
+
 async def get_distinct_categories() -> list[str]:
     """Return unique non-empty categories currently stored in jobs.json."""
     jobs = await read_jobs()

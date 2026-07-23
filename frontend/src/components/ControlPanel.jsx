@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-import { discoverChannels, startExtraction, stopExtraction } from '../api'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  discoverChannels,
+  fetchCategories,
+  startExtraction,
+  stopExtraction,
+} from '../api'
 import { useActivity } from '../activity'
 
 const EXTRACT_DATE_PRESETS = [
@@ -38,6 +43,10 @@ function dedupeLabels(values) {
   return out
 }
 
+function mergeLabels(...groups) {
+  return dedupeLabels(groups.flat())
+}
+
 function normalizeChannelInput(raw) {
   return raw
     .split(/[\s,]+/)
@@ -57,16 +66,20 @@ export default function ControlPanel({ onExtractionStarted }) {
   const { liveStatus, pipelineBusy, latestByStage } = useActivity()
   const [channelInput, setChannelInput] = useState('')
   const [channels, setChannels] = useState([])
-  const [categories, setCategories] = useState([])
-  const [titles, setTitles] = useState([])
+  const [storedCategories, setStoredCategories] = useState([])
+  const [discoveredCategories, setDiscoveredCategories] = useState([])
+  const [suggestedTitles, setSuggestedTitles] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
   const [selectedTitles, setSelectedTitles] = useState([])
+  const [titleInput, setTitleInput] = useState('')
   const [categoryQuery, setCategoryQuery] = useState('')
   const [titleQuery, setTitleQuery] = useState('')
   const [extractPreset, setExtractPreset] = useState('today')
   const [extractStartDate, setExtractStartDate] = useState('')
   const [extractEndDate, setExtractEndDate] = useState('')
   const [sampleCount, setSampleCount] = useState(null)
+  const [discoveryDone, setDiscoveryDone] = useState(false)
+  const [discovering, setDiscovering] = useState(false)
   const [busy, setBusy] = useState(false)
   const [busyHint, setBusyHint] = useState('')
   const [status, setStatus] = useState('')
@@ -75,33 +88,65 @@ export default function ControlPanel({ onExtractionStarted }) {
   const [aborted, setAborted] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
 
+  const loadStoredCategories = useCallback(async () => {
+    try {
+      const data = await fetchCategories()
+      setStoredCategories(data.categories || [])
+    } catch {
+      /* non-fatal */
+    }
+  }, [])
+
+  useEffect(() => {
+    loadStoredCategories()
+  }, [loadStoredCategories])
+
+  const categoryOptions = useMemo(
+    () => mergeLabels(discoveredCategories, storedCategories),
+    [discoveredCategories, storedCategories],
+  )
+
+  const filteredCategories = useMemo(() => {
+    const q = categoryQuery.trim().toLowerCase()
+    if (!q) return categoryOptions
+    return categoryOptions.filter((c) => c.toLowerCase().includes(q))
+  }, [categoryOptions, categoryQuery])
+
+  const filteredTitles = useMemo(() => {
+    const q = titleQuery.trim().toLowerCase()
+    if (!q) return suggestedTitles
+    return suggestedTitles.filter((t) => t.toLowerCase().includes(q))
+  }, [suggestedTitles, titleQuery])
+
+  useEffect(() => {
+    if (busy || discovering || pipelineBusy || isExtracting) {
+      setBusyHint(liveStatus || 'Working…')
+    }
+  }, [busy, discovering, pipelineBusy, isExtracting, liveStatus])
+
+  // Apply discovery results as soon as SSE delivers them
   useEffect(() => {
     const event = latestByStage.DISCOVERED_CATEGORIES
     if (!event?.data) return
     const cats = dedupeLabels(event.data.discovered_categories || [])
-    const suggested = dedupeLabels(event.data.suggested_titles || [])
-    if (cats.length || suggested.length) {
-      setCategories(cats)
-      setTitles(suggested)
+    const titles = dedupeLabels(event.data.suggested_titles || [])
+    if (cats.length || titles.length) {
+      setDiscoveredCategories(cats)
+      setSuggestedTitles(titles)
       setSampleCount(event.data.sample_count ?? null)
+      setDiscoveryDone(true)
     }
   }, [latestByStage.DISCOVERED_CATEGORIES])
 
   useEffect(() => {
-    if (busy || pipelineBusy) {
-      setBusyHint(liveStatus || 'Working…')
-    }
-  }, [busy, pipelineBusy, liveStatus])
-
-  useEffect(() => {
-    const stage = latestByStage.EXTRACTION_STOPPED?.ts
-    if (stage) {
+    if (latestByStage.EXTRACTION_STOPPED?.ts) {
       setStopping(false)
       setIsExtracting(false)
       setAborted(true)
       setStatus('Extraction pipeline stopped.')
+      loadStoredCategories()
     }
-  }, [latestByStage.EXTRACTION_STOPPED])
+  }, [latestByStage.EXTRACTION_STOPPED, loadStoredCategories])
 
   useEffect(() => {
     const done = latestByStage.EXTRACTION_DONE
@@ -109,35 +154,14 @@ export default function ControlPanel({ onExtractionStarted }) {
     if (done?.ts && isExtracting) {
       setIsExtracting(false)
       setStopping(false)
-      if (!aborted) {
-        setStatus((prev) => prev || 'Extraction finished.')
-      }
+      if (!aborted) setStatus((prev) => prev || 'Extraction finished.')
+      loadStoredCategories()
     }
-  }, [latestByStage.EXTRACTION_DONE, isExtracting, aborted])
+  }, [latestByStage.EXTRACTION_DONE, isExtracting, aborted, loadStoredCategories])
 
-  async function handleStopExtraction() {
-    setStopping(true)
-    setError('')
-    try {
-      const data = await stopExtraction()
-      setStatus(data.message || 'Stop signal sent — waiting for scraper to halt…')
-      setAborted(true)
-    } catch (err) {
-      setError(err.message || 'Failed to stop extraction')
-      setStopping(false)
-    }
-  }
-  const filteredCategories = useMemo(() => {
-    const q = categoryQuery.trim().toLowerCase()
-    if (!q) return categories
-    return categories.filter((c) => c.toLowerCase().includes(q))
-  }, [categories, categoryQuery])
-
-  const filteredTitles = useMemo(() => {
-    const q = titleQuery.trim().toLowerCase()
-    if (!q) return titles
-    return titles.filter((t) => t.toLowerCase().includes(q))
-  }, [titles, titleQuery])
+  useEffect(() => {
+    if (latestByStage.JOB_SAVED?.ts) loadStoredCategories()
+  }, [latestByStage.JOB_SAVED, loadStoredCategories])
 
   function addChannels() {
     const next = normalizeChannelInput(channelInput)
@@ -160,31 +184,64 @@ export default function ControlPanel({ onExtractionStarted }) {
     setChannels((prev) => prev.filter((c) => c !== name))
   }
 
+  function addTitleChip() {
+    const parts = titleInput
+      .split(',')
+      .map((t) => normalizeLabel(t))
+      .filter(Boolean)
+    if (!parts.length) return
+    setSelectedTitles((prev) => mergeLabels(prev, parts))
+    setSuggestedTitles((prev) => mergeLabels(prev, parts))
+    setTitleInput('')
+  }
+
+  function removeTitle(title) {
+    setSelectedTitles((prev) => prev.filter((t) => t !== title))
+  }
+
   async function handleDiscover() {
     setError('')
     setStatus('')
+    setDiscovering(true)
     setBusy(true)
     setBusyHint('Joining channels and sampling posts…')
+    setDiscoveryDone(false)
     try {
       const data = await discoverChannels(channels)
       const cats = dedupeLabels(data.discovered_categories || [])
-      const suggested = dedupeLabels(data.suggested_titles || [])
-      setCategories(cats)
-      setTitles(suggested)
+      const titles = dedupeLabels(data.suggested_titles || [])
+      setDiscoveredCategories(cats)
+      setSuggestedTitles(titles)
       setSelectedCategories([])
       setSelectedTitles([])
       setCategoryQuery('')
       setTitleQuery('')
       setSampleCount(data.sample_count ?? null)
-      const count = (data.channels || channels).length
+      setDiscoveryDone(true)
       setStatus(
-        `Sampled ${data.sample_count ?? 0} posts across ${count} channel(s). Select filters, then start extraction.`,
+        `Discovered ${cats.length} categories and ${titles.length} titles from ${data.sample_count ?? 0} sample posts.`,
       )
+      await loadStoredCategories()
     } catch (err) {
-      setError(err.message || 'Discovery failed')
+      setError(err.message || 'Category discovery failed')
+      setDiscoveryDone(false)
     } finally {
+      setDiscovering(false)
       setBusy(false)
       setBusyHint('')
+    }
+  }
+
+  async function handleStopExtraction() {
+    setStopping(true)
+    setError('')
+    try {
+      const data = await stopExtraction()
+      setStatus(data.message || 'Stop signal sent — waiting for scraper to halt…')
+      setAborted(true)
+    } catch (err) {
+      setError(err.message || 'Failed to stop extraction')
+      setStopping(false)
     }
   }
 
@@ -217,140 +274,148 @@ export default function ControlPanel({ onExtractionStarted }) {
     }
   }
 
-  const hasDiscovery = categories.length > 0 || titles.length > 0
-  const locked = busy || (pipelineBusy && !isExtracting)
-  const startDisabled = busy || isExtracting || channels.length === 0
+  const locked = busy || discovering || (pipelineBusy && !isExtracting)
+  const startDisabled = busy || discovering || isExtracting || channels.length === 0
   const progress = latestByStage.EXTRACTION_PROGRESS?.data
   const channelProgress = latestByStage.EXTRACTION_STARTED?.data
   const progressLabel = stopping
     ? 'Stopping extraction…'
-    : progress?.current && progress?.total
-      ? `${progress.channel ? `[${progress.channel}] ` : ''}Extracting post ${progress.current}/${progress.total}…`
-      : channelProgress?.index && channelProgress?.total
-        ? `Processing channel ${channelProgress.index}/${channelProgress.total}: ${channelProgress.channel}…`
-        : busyHint || liveStatus
+    : discovering
+      ? busyHint || liveStatus || 'Discovering categories…'
+      : progress?.current && progress?.total
+        ? `${progress.channel ? `[${progress.channel}] ` : ''}Extracting post ${progress.current}/${progress.total}…`
+        : channelProgress?.index && channelProgress?.total
+          ? `Processing channel ${channelProgress.index}/${channelProgress.total}: ${channelProgress.channel}…`
+          : busyHint || liveStatus
 
   return (
     <section className="panel control-panel">
       <header className="panel-header">
         <h2>Control Board</h2>
-        <p>Add channels, sample posts, pick categories, then run extraction.</p>
+        <p>Discover categories from channels, select targets, then extract by date range.</p>
       </header>
 
-      <label className="field">
-        <span>Add channel</span>
-        <div className="channel-add-row">
-          <input
-            type="text"
-            placeholder="@tech_jobs, @remote_work"
-            value={channelInput}
-            onChange={(e) => setChannelInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                addChannels()
-              }
-            }}
-            disabled={locked}
-          />
+      <div className="workflow-step">
+        <h3 className="step-title">1. Channels & discovery</h3>
+        <label className="field">
+          <span>Add channel</span>
+          <div className="channel-add-row">
+            <input
+              type="text"
+              placeholder="@tech_jobs, @remote_work"
+              value={channelInput}
+              onChange={(e) => setChannelInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addChannels()
+                }
+              }}
+              disabled={locked || isExtracting}
+            />
+            <button
+              type="button"
+              className="btn"
+              onClick={addChannels}
+              disabled={locked || isExtracting || !channelInput.trim()}
+            >
+              Add Channel
+            </button>
+          </div>
+        </label>
+
+        {channels.length > 0 ? (
+          <div className="channel-chips">
+            {channels.map((ch) => (
+              <span key={ch} className="channel-chip">
+                {ch}
+                <button
+                  type="button"
+                  className="chip-remove"
+                  aria-label={`Remove ${ch}`}
+                  onClick={() => removeChannel(ch)}
+                  disabled={locked || isExtracting}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">No channels yet — add one or more usernames above.</p>
+        )}
+
+        <div className="actions">
           <button
             type="button"
-            className="btn"
-            onClick={addChannels}
-            disabled={locked || !channelInput.trim()}
+            className="btn primary"
+            onClick={handleDiscover}
+            disabled={locked || isExtracting || channels.length === 0}
           >
-            Add Channel
+            {discovering ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Discovering…
+              </>
+            ) : (
+              'Join & Discover Categories'
+            )}
           </button>
         </div>
-      </label>
-
-      {channels.length > 0 ? (
-        <div className="channel-chips">
-          {channels.map((ch) => (
-            <span key={ch} className="channel-chip">
-              {ch}
-              <button
-                type="button"
-                className="chip-remove"
-                aria-label={`Remove ${ch}`}
-                onClick={() => removeChannel(ch)}
-                disabled={locked}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="muted">No channels yet — add one or more usernames above.</p>
-      )}
-
-      <div className="actions">
-        <button
-          type="button"
-          className="btn primary"
-          onClick={handleDiscover}
-          disabled={locked || channels.length === 0}
-        >
-          {busy ? (
-            <>
-              <span className="spinner" aria-hidden />
-              Sampling…
-            </>
-          ) : (
-            'Join & Sample Channels'
-          )}
-        </button>
       </div>
 
-      {(busy || isExtracting || pipelineBusy) && (
+      {(busy || discovering || isExtracting || pipelineBusy) && (
         <p className="status busy-line">
           <span className="spinner" aria-hidden />
           {progressLabel || 'Working…'}
         </p>
       )}
 
-      {hasDiscovery && (
-        <div className="discovery">
+      {discoveryDone && (
+        <div className="workflow-step">
+          <h3 className="step-title">2. Categories & titles</h3>
           {sampleCount != null && (
             <p className="muted">Samples analyzed: {sampleCount}</p>
           )}
 
-          {categories.length > 0 && (
-            <fieldset className="option-box">
-              <legend>Categories ({categories.length})</legend>
-              <div className="option-toolbar">
-                <button
-                  type="button"
-                  className="btn tiny"
-                  disabled={locked}
-                  onClick={() => setSelectedCategories([...categories])}
-                >
-                  Select All
-                </button>
-                <button
-                  type="button"
-                  className="btn tiny"
-                  disabled={locked}
-                  onClick={() => setSelectedCategories([])}
-                >
-                  Deselect All
-                </button>
-                <span className="muted tiny-count">
-                  {selectedCategories.length} selected
-                </span>
-              </div>
-              {categories.length > 15 && (
-                <input
-                  className="option-search"
-                  type="search"
-                  placeholder="Filter categories…"
-                  value={categoryQuery}
-                  onChange={(e) => setCategoryQuery(e.target.value)}
-                  disabled={locked}
-                />
-              )}
-              <div className="check-scroll">
+          <fieldset className="option-box">
+            <legend>Categories ({categoryOptions.length})</legend>
+            <p className="muted option-hint">
+              Discovered categories merged with stored ones. Leave unchecked to match all.
+            </p>
+            <div className="option-toolbar">
+              <button
+                type="button"
+                className="btn tiny"
+                disabled={locked || isExtracting || categoryOptions.length === 0}
+                onClick={() => setSelectedCategories([...categoryOptions])}
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                className="btn tiny"
+                disabled={locked || isExtracting}
+                onClick={() => setSelectedCategories([])}
+              >
+                Deselect All
+              </button>
+              <span className="muted tiny-count">{selectedCategories.length} selected</span>
+            </div>
+            {categoryOptions.length > 15 && (
+              <input
+                className="option-search"
+                type="search"
+                placeholder="Filter categories…"
+                value={categoryQuery}
+                onChange={(e) => setCategoryQuery(e.target.value)}
+                disabled={locked || isExtracting}
+              />
+            )}
+            <div className="check-scroll">
+              {categoryOptions.length === 0 ? (
+                <p className="muted">No categories discovered. Try other channels.</p>
+              ) : (
                 <div className="check-grid">
                   {filteredCategories.map((cat) => (
                     <label key={cat} className="check">
@@ -360,139 +425,181 @@ export default function ControlPanel({ onExtractionStarted }) {
                         onChange={() =>
                           setSelectedCategories((prev) => toggleValue(prev, cat))
                         }
-                        disabled={locked}
+                        disabled={locked || isExtracting}
                       />
                       <span>{cat}</span>
                     </label>
                   ))}
-                  {filteredCategories.length === 0 && (
-                    <p className="muted">No categories match “{categoryQuery}”.</p>
-                  )}
                 </div>
-              </div>
-            </fieldset>
-          )}
-
-          {titles.length > 0 && (
-            <fieldset className="option-box">
-              <legend>Suggested titles ({titles.length})</legend>
-              <div className="option-toolbar">
-                <button
-                  type="button"
-                  className="btn tiny"
-                  disabled={locked}
-                  onClick={() => setSelectedTitles([...titles])}
-                >
-                  Select All
-                </button>
-                <button
-                  type="button"
-                  className="btn tiny"
-                  disabled={locked}
-                  onClick={() => setSelectedTitles([])}
-                >
-                  Deselect All
-                </button>
-              </div>
-              {titles.length > 15 && (
-                <input
-                  className="option-search"
-                  type="search"
-                  placeholder="Filter titles…"
-                  value={titleQuery}
-                  onChange={(e) => setTitleQuery(e.target.value)}
-                  disabled={locked}
-                />
               )}
-              <div className="check-scroll">
-                <div className="check-grid">
-                  {filteredTitles.map((title) => (
-                    <label key={title} className="check">
-                      <input
-                        type="checkbox"
-                        checked={selectedTitles.includes(title)}
-                        onChange={() =>
-                          setSelectedTitles((prev) => toggleValue(prev, title))
-                        }
-                        disabled={locked}
-                      />
-                      <span>{title}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </fieldset>
-          )}
-
-          <div className="extract-date-block">
-            <span className="date-filter-label">Target scrape range</span>
-            <div className="preset-pills" role="group" aria-label="Extraction date range">
-              {EXTRACT_DATE_PRESETS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  className={`preset-pill ${extractPreset === p.value ? 'active' : ''}`}
-                  onClick={() => setExtractPreset(p.value)}
-                  disabled={locked}
-                >
-                  {p.label}
-                </button>
-              ))}
             </div>
-            {extractPreset === 'custom' && (
-              <div className="custom-range">
-                <label className="field inline">
-                  <span>Start</span>
-                  <input
-                    type="date"
-                    value={extractStartDate}
-                    onChange={(e) => setExtractStartDate(e.target.value)}
-                    disabled={locked}
-                  />
-                </label>
-                <label className="field inline">
-                  <span>End</span>
-                  <input
-                    type="date"
-                    value={extractEndDate}
-                    onChange={(e) => setExtractEndDate(e.target.value)}
-                    disabled={locked}
-                  />
-                </label>
+          </fieldset>
+
+          <fieldset className="option-box">
+            <legend>Suggested titles ({suggestedTitles.length})</legend>
+            <p className="muted option-hint">
+              Check discovered titles or add your own chips.
+            </p>
+            <div className="option-toolbar">
+              <button
+                type="button"
+                className="btn tiny"
+                disabled={locked || isExtracting || suggestedTitles.length === 0}
+                onClick={() => setSelectedTitles([...suggestedTitles])}
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                className="btn tiny"
+                disabled={locked || isExtracting}
+                onClick={() => setSelectedTitles([])}
+              >
+                Deselect All
+              </button>
+            </div>
+            {suggestedTitles.length > 15 && (
+              <input
+                className="option-search"
+                type="search"
+                placeholder="Filter titles…"
+                value={titleQuery}
+                onChange={(e) => setTitleQuery(e.target.value)}
+                disabled={locked || isExtracting}
+              />
+            )}
+            <div className="check-scroll">
+              <div className="check-grid">
+                {filteredTitles.map((title) => (
+                  <label key={title} className="check">
+                    <input
+                      type="checkbox"
+                      checked={selectedTitles.includes(title)}
+                      onChange={() =>
+                        setSelectedTitles((prev) => toggleValue(prev, title))
+                      }
+                      disabled={locked || isExtracting}
+                    />
+                    <span>{title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="channel-add-row" style={{ marginTop: '0.65rem' }}>
+              <input
+                type="text"
+                placeholder="Add custom title…"
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addTitleChip()
+                  }
+                }}
+                disabled={locked || isExtracting}
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={addTitleChip}
+                disabled={locked || isExtracting || !titleInput.trim()}
+              >
+                Add Title
+              </button>
+            </div>
+            {selectedTitles.length > 0 && (
+              <div className="channel-chips">
+                {selectedTitles.map((title) => (
+                  <span key={title} className="channel-chip">
+                    {title}
+                    <button
+                      type="button"
+                      className="chip-remove"
+                      aria-label={`Remove ${title}`}
+                      onClick={() => removeTitle(title)}
+                      disabled={locked || isExtracting}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
               </div>
             )}
-          </div>
-
-          <div className="actions">
-            {!isExtracting ? (
-              <button
-                type="button"
-                className="btn accent"
-                onClick={handleExtract}
-                disabled={startDisabled}
-              >
-                Start Extraction Pipeline
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn danger"
-                onClick={handleStopExtraction}
-                disabled={stopping}
-              >
-                {stopping ? (
-                  <>
-                    <span className="spinner" aria-hidden />
-                    Stopping…
-                  </>
-                ) : (
-                  'Stop Extraction'
-                )}
-              </button>
-            )}
-          </div>
+          </fieldset>
         </div>
       )}
+
+      <div className="workflow-step">
+        <h3 className="step-title">3. Date-bounded extraction</h3>
+        <div className="extract-date-block">
+          <span className="date-filter-label">Target scrape range</span>
+          <div className="preset-pills" role="group" aria-label="Extraction date range">
+            {EXTRACT_DATE_PRESETS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                className={`preset-pill ${extractPreset === p.value ? 'active' : ''}`}
+                onClick={() => setExtractPreset(p.value)}
+                disabled={locked || isExtracting}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {extractPreset === 'custom' && (
+            <div className="custom-range">
+              <label className="field inline">
+                <span>Start</span>
+                <input
+                  type="date"
+                  value={extractStartDate}
+                  onChange={(e) => setExtractStartDate(e.target.value)}
+                  disabled={locked || isExtracting}
+                />
+              </label>
+              <label className="field inline">
+                <span>End</span>
+                <input
+                  type="date"
+                  value={extractEndDate}
+                  onChange={(e) => setExtractEndDate(e.target.value)}
+                  disabled={locked || isExtracting}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="actions">
+          {!isExtracting ? (
+            <button
+              type="button"
+              className="btn accent"
+              onClick={handleExtract}
+              disabled={startDisabled}
+            >
+              Start Extraction Pipeline
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn danger"
+              onClick={handleStopExtraction}
+              disabled={stopping}
+            >
+              {stopping ? (
+                <>
+                  <span className="spinner" aria-hidden />
+                  Stopping…
+                </>
+              ) : (
+                'Stop Extraction'
+              )}
+            </button>
+          )}
+        </div>
+      </div>
 
       {aborted && <p className="status warn">Extraction was manually aborted.</p>}
       {status && <p className="status ok">{status}</p>}

@@ -15,13 +15,14 @@ from pydantic import BaseModel, Field, model_validator
 from activity_log import broadcast_log, sse_event_stream, subscribe
 from config import settings
 from scraper import (
-    discover_channels_categories,
     normalize_channels,
     request_stop_extraction,
     reset_stop_flag,
+    sample_channel_categories,
     scrape_and_process_channels,
 )
 from storage import (
+    delete_job,
     get_distinct_categories,
     get_jobs_sorted,
     read_debug_samples,
@@ -101,7 +102,8 @@ async def discover(body: DiscoverRequest):
         {"channels": channels},
     )
     try:
-        return await discover_channels_categories(channels)
+        result = await sample_channel_categories(channels, sample_limit_per_channel=15)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -198,6 +200,15 @@ async def list_jobs(
         "start_date": start_date,
         "end_date": end_date,
     }
+
+
+@app.delete("/api/jobs/{job_id}")
+async def remove_job(job_id: str):
+    """Delete a stored job by unique id (e.g. channel_msgid) or message_id."""
+    deleted = await delete_job(job_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    return {"success": True, "deleted_id": job_id}
 
 
 @app.get("/api/categories")

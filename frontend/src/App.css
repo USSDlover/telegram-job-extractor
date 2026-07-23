@@ -451,11 +451,44 @@
   border-color: color-mix(in srgb, var(--accent-2) 40%, var(--line));
 }
 
+.workflow-step {
+  margin-top: 1rem;
+  padding-top: 0.35rem;
+}
+
+.step-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: color-mix(in srgb, var(--ink) 92%, var(--muted));
+}
+
+
 .job-top {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
+}
+
+.job-delete {
+  margin-left: auto;
+}
+
+.btn.danger-outline {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  color: #f0a0a6;
+}
+
+.btn.danger-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.btn.link.tg {
+  background: color-mix(in srgb, #4a8fd4 22%, var(--bg0));
+  border-color: color-mix(in srgb, #4a8fd4 45%, transparent);
+  color: #9ec5f0;
 }
 
 .job-top h3 {

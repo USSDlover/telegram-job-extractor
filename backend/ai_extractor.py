@@ -29,8 +29,17 @@ class ExtractedJob(BaseModel):
 
 
 class CategoryDiscoveryResult(BaseModel):
-    discovered_categories: List[str] = Field(default_factory=list)
-    suggested_titles: List[str] = Field(default_factory=list)
+    discovered_categories: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Unique, normalized job categories extracted from sample posts in English, "
+            "e.g. Frontend Architecture, Full Stack, Hospitality"
+        ),
+    )
+    suggested_titles: List[str] = Field(
+        default_factory=list,
+        description="Normalized English job position titles found in the sample posts",
+    )
 
 
 def _strip_json_fence(text: str) -> str:
@@ -147,6 +156,7 @@ async def discover_categories_from_samples(
     Analyze sampled channel posts and return categories + suggested titles.
     Large sample sets are processed in chunks; debug payloads are persisted.
     Short/link-only samples are enriched with fetched page metadata first.
+    Raises RuntimeError if Ollama fails for every chunk.
     """
     channel_list = list(channels or [])
     if not sample_texts:
@@ -172,9 +182,10 @@ async def discover_categories_from_samples(
                 "note": "No sample posts collected",
             }
         )
-        return CategoryDiscoveryResult()
+        raise ValueError(
+            "No text posts were collected from the selected channels for discovery."
+        )
 
-    # Enrich short/link-only samples (cap fetches to keep discovery responsive)
     enriched_samples: List[str] = []
     enriched_metadata: list[dict] = []
     enrich_budget = 20
@@ -194,24 +205,25 @@ async def discover_categories_from_samples(
             enriched_samples.append(text)
 
     system = (
-        "You are an expert multilingual job classification and translation assistant. "
-        "Sample posts may be written in Armenian, Russian, English, or a mix. "
-        "Some posts include appended [Fetched Web Page Metadata] from linked pages — "
-        "use both the Telegram text AND that metadata. "
-        "Identify distinct job categories and normalized English job titles "
-        "(e.g. Frontend Developer, Full Stack, Game Presenter, Waiter). "
-        "ALWAYS output category and title strings in fluent English only — "
-        "NEVER return Armenian script or Russian Cyrillic in discovered_categories or suggested_titles. "
-        "Return as many relevant categories and titles as you can find; "
-        "use empty lists only if none are present."
+        "You are an expert multilingual job classifier. Analyze the provided sample "
+        "Telegram posts (which may contain text in English, Russian, or Armenian). "
+        "Some posts include appended [Fetched Web Page Metadata] — use that too. "
+        "1. Identify all job positions and employment categories present in the text. "
+        "2. Translate all categories and titles into clear, concise English. "
+        "3. Deduplicate and normalize the category names "
+        '(e.g., merge "frontend", "Frontend Dev", "Frontend Engineering" into '
+        '"Frontend Developer"). '
+        "4. NEVER return Armenian script or Russian Cyrillic in discovered_categories "
+        "or suggested_titles. "
+        "5. Return the result in the requested JSON structure."
     )
     schema = CategoryDiscoveryResult.model_json_schema()
     chunks = _chunk_samples(enriched_samples)
 
     await broadcast_log(
         "CALLING_OLLAMA",
-        f"Sending {len(enriched_samples)} sample posts to Gemma 2 "
-        f"in {len(chunks)} chunk(s) for category discovery...",
+        f"Extracting categories with Gemma 2 from {len(enriched_samples)} sample posts "
+        f"in {len(chunks)} chunk(s)...",
         {
             "sample_count": len(enriched_samples),
             "chunk_count": len(chunks),
@@ -221,6 +233,7 @@ async def discover_categories_from_samples(
     )
 
     results: List[CategoryDiscoveryResult] = []
+    chunk_errors: list[str] = []
     chunk_debug: list[dict] = []
     prompt_parts: list[str] = []
     raw_parts: list[str] = []
@@ -260,6 +273,7 @@ async def discover_categories_from_samples(
             )
         except (httpx.HTTPError, json.JSONDecodeError, ValidationError, KeyError) as exc:
             logger.exception("Category discovery chunk %s failed: %s", idx, exc)
+            chunk_errors.append(f"chunk {idx}: {exc}")
             await broadcast_log(
                 "ERROR",
                 f"Ollama category discovery chunk {idx}/{len(chunks)} failed: {exc}",
@@ -298,8 +312,15 @@ async def discover_categories_from_samples(
             "discovered_categories": merged.discovered_categories,
             "suggested_titles": merged.suggested_titles,
             "enriched_metadata": enriched_metadata,
+            "chunk_errors": chunk_errors,
         }
     )
+
+    if not results and chunk_errors:
+        raise RuntimeError(
+            "Ollama/Gemma 2 category discovery failed for all chunks: "
+            + "; ".join(chunk_errors)
+        )
     return merged
 
 
@@ -346,13 +367,14 @@ async def extract_job_data(message_text: str) -> Optional[ExtractedJob]:
 
     if not job.is_job_posting:
         return None
-    if not job.apply_links:
-        return None
 
     job.title = (job.title or "").strip() or "Untitled Role"
     job.category = (job.category or "").strip() or "Uncategorized"
     job.translated_summary = (job.translated_summary or "").strip()
-    job.apply_links = [u.strip() for u in job.apply_links if u and u.strip()]
-    if not job.apply_links:
-        return None
+    job.apply_links = [
+        u.strip()
+        for u in (job.apply_links or [])
+        if u and u.strip() and u.strip().lower().startswith(("http://", "https://"))
+    ]
+    # Empty apply_links is OK — scraper injects Telegram message URL fallback
     return job

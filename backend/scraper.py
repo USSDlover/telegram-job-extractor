@@ -176,17 +176,39 @@ async def sample_channel_messages(
         raise ValueError(f"Cannot access channel {channel}: {exc}") from exc
 
 
-async def discover_channels_categories(channels: Sequence[str]) -> dict:
+async def sample_channel_categories(
+    channels: Sequence[str],
+    sample_limit_per_channel: int = 15,
+) -> dict:
+    """
+    Sample recent posts from each channel, enrich short link posts, and discover
+    unified English categories/titles via Gemma 2.
+    """
+    return await discover_channels_categories(
+        channels,
+        sample_limit_per_channel=sample_limit_per_channel,
+    )
+
+
+async def discover_channels_categories(
+    channels: Sequence[str],
+    sample_limit_per_channel: int | None = None,
+) -> dict:
     """Sample multiple channels, aggregate texts, discover unified categories/titles."""
     channel_list = normalize_channels(channels)
+    limit = sample_limit_per_channel or settings.sample_limit
+    # Prefer a slightly smaller default for multi-channel discovery responsiveness
+    if sample_limit_per_channel is None and len(channel_list) > 3:
+        limit = min(limit, 15)
     all_samples: List[str] = []
     per_channel: dict[str, int] = {}
     errors: list[str] = []
 
     await broadcast_log(
         "DISCOVER_STARTED",
-        f"Discovery across {len(channel_list)} channel(s)...",
-        {"channels": channel_list},
+        f"Discovery across {len(channel_list)} channel(s) "
+        f"({limit} sample posts per channel)...",
+        {"channels": channel_list, "sample_limit_per_channel": limit},
     )
 
     try:
@@ -194,7 +216,7 @@ async def discover_channels_categories(channels: Sequence[str]) -> dict:
             for idx, channel in enumerate(channel_list, start=1):
                 await broadcast_log(
                     "JOINING_TELEGRAM",
-                    f"Processing channel {idx}/{len(channel_list)}: {channel}...",
+                    f"Fetching sample posts from channel {idx}/{len(channel_list)}: {channel}...",
                     {
                         "channel": channel,
                         "index": idx,
@@ -202,9 +224,7 @@ async def discover_channels_categories(channels: Sequence[str]) -> dict:
                     },
                 )
                 try:
-                    samples = await _sample_with_client(
-                        client, channel, settings.sample_limit
-                    )
+                    samples = await _sample_with_client(client, channel, limit)
                     per_channel[channel] = len(samples)
                     all_samples.extend(samples)
                 except (
@@ -223,8 +243,15 @@ async def discover_channels_categories(channels: Sequence[str]) -> dict:
         await broadcast_log("ERROR", f"Discovery failed: {exc}", {"channels": channel_list})
         raise
 
-    if not all_samples and errors:
-        raise ValueError("; ".join(errors))
+    if not all_samples:
+        detail = "; ".join(errors) if errors else "no text posts found"
+        raise ValueError(f"Could not collect sample posts for discovery ({detail})")
+
+    await broadcast_log(
+        "FETCHING_POSTS",
+        f"Collected {len(all_samples)} sample posts across {len(channel_list)} channel(s).",
+        {"sample_count": len(all_samples), "per_channel": per_channel},
+    )
 
     result = await discover_categories_from_samples(
         all_samples, channels=channel_list
@@ -243,6 +270,7 @@ async def discover_channels_categories(channels: Sequence[str]) -> dict:
         },
     )
     return {
+        "success": True,
         "channels": channel_list,
         "discovered_categories": result.discovered_categories,
         "suggested_titles": result.suggested_titles,
@@ -283,7 +311,32 @@ def _matches_filters(
     return title_ok
 
 
+def telegram_message_url(channel: str, message_id: int | str) -> str:
+    """Build canonical public Telegram message URL."""
+    clean = (channel or "").strip().lstrip("@")
+    if clean.startswith("https://t.me/"):
+        clean = clean.rstrip("/").split("/")[-1]
+    return f"https://t.me/{clean}/{message_id}"
+
+
+def _ensure_apply_links(links: list[str], fallback_url: str) -> list[str]:
+    valid = [
+        u.strip()
+        for u in (links or [])
+        if u and u.strip().lower().startswith(("http://", "https://"))
+    ]
+    if valid:
+        return list(dict.fromkeys(valid))
+    return [fallback_url]
+
+
 def _aware_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
     if dt is None:
         return None
     if dt.tzinfo is None:
@@ -426,12 +479,16 @@ async def _scrape_one_channel(
         ):
             continue
 
+        tg_url = telegram_message_url(channel, msg.id)
+        extracted.apply_links = _ensure_apply_links(extracted.apply_links, tg_url)
+
         date_iso = msg_dt.isoformat()
         record = {
             "id": f"{channel.lstrip('@')}_{msg.id}",
             "channel": channel,
             "message_id": msg.id,
             "date": date_iso,
+            "telegram_url": tg_url,
             **extracted.model_dump(),
         }
         await upsert_jobs([record])
@@ -444,6 +501,7 @@ async def _scrape_one_channel(
                 "title": extracted.title,
                 "category": extracted.category,
                 "channel": channel,
+                "apply_links": extracted.apply_links,
             },
         )
 

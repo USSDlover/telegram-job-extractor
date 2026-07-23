@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchCategories, fetchJobs } from '../api'
+import { deleteJob, fetchCategories, fetchJobs } from '../api'
 
 const SORT_OPTIONS = [
   { value: 'date_desc', label: 'Newest First' },
@@ -22,6 +22,15 @@ function formatDate(iso) {
     return new Date(iso).toLocaleString()
   } catch {
     return iso
+  }
+}
+
+function isTelegramUrl(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return host === 't.me' || host.endsWith('.t.me') || host === 'telegram.me'
+  } catch {
+    return /t\.me\//i.test(url || '')
   }
 }
 
@@ -58,6 +67,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   const refreshAll = useCallback(async () => {
     setLoading(true)
@@ -91,6 +101,29 @@ export default function JobDashboard({ refreshToken = 0 }) {
   }, [refreshAll, refreshToken])
 
   const visibleJobs = useMemo(() => sortJobsClient(jobs, sortBy), [jobs, sortBy])
+
+  async function handleDelete(job) {
+    const jobId = job.id || String(job.message_id || '')
+    if (!jobId) return
+    const ok = window.confirm(`Delete job “${job.title || jobId}”?`)
+    if (!ok) return
+
+    setDeletingId(jobId)
+    setJobs((prev) => prev.filter((j) => (j.id || String(j.message_id)) !== jobId))
+    try {
+      await deleteJob(jobId)
+      const catsData = await fetchCategories()
+      setCategories(catsData.categories || [])
+      if (category && !(catsData.categories || []).includes(category)) {
+        setCategory('')
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to delete job')
+      await refreshAll()
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <section className="panel job-dashboard">
@@ -191,33 +224,48 @@ export default function JobDashboard({ refreshToken = 0 }) {
       )}
 
       <ul className="job-list">
-        {visibleJobs.map((job) => (
-          <li key={job.id || `${job.channel}-${job.message_id}`} className="job-card">
-            <div className="job-top">
-              <h3>{job.title || 'Untitled'}</h3>
-              {job.category && <span className="badge">{job.category}</span>}
-            </div>
-            <div className="job-meta">
-              <time dateTime={job.date || undefined}>{formatDate(job.date)}</time>
-              {job.company && <span>· {job.company}</span>}
-              {job.channel && <span>· {job.channel}</span>}
-            </div>
-            <p className="summary">{job.translated_summary || 'No summary available.'}</p>
-            <div className="links">
-              {(job.apply_links || []).map((url) => (
-                <a
-                  key={url}
-                  className="btn link"
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+        {visibleJobs.map((job) => {
+          const jobId = job.id || String(job.message_id || '')
+          return (
+            <li key={jobId} className="job-card">
+              <div className="job-top">
+                <h3>{job.title || 'Untitled'}</h3>
+                {job.category && <span className="badge">{job.category}</span>}
+                <button
+                  type="button"
+                  className="btn tiny danger-outline job-delete"
+                  onClick={() => handleDelete(job)}
+                  disabled={deletingId === jobId}
+                  aria-label={`Delete ${job.title || jobId}`}
                 >
-                  Apply
-                </a>
-              ))}
-            </div>
-          </li>
-        ))}
+                  {deletingId === jobId ? '…' : 'Delete'}
+                </button>
+              </div>
+              <div className="job-meta">
+                <time dateTime={job.date || undefined}>{formatDate(job.date)}</time>
+                {job.company && <span>· {job.company}</span>}
+                {job.channel && <span>· {job.channel}</span>}
+              </div>
+              <p className="summary">{job.translated_summary || 'No summary available.'}</p>
+              <div className="links">
+                {(job.apply_links || []).map((url) => {
+                  const tg = isTelegramUrl(url)
+                  return (
+                    <a
+                      key={url}
+                      className={`btn link ${tg ? 'tg' : ''}`}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {tg ? 'View Telegram Post' : 'Apply Here'}
+                    </a>
+                  )
+                })}
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
