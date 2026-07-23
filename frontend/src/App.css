@@ -1,5 +1,5 @@
 .app {
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 2rem 1.25rem 3rem;
 }
@@ -33,17 +33,85 @@
   line-height: 1.5;
 }
 
-.layout {
+.layout-top {
   display: grid;
   gap: 1.25rem;
   grid-template-columns: 1fr;
+  margin-bottom: 1.25rem;
+  align-items: start;
 }
 
 @media (min-width: 960px) {
-  .layout {
-    grid-template-columns: minmax(280px, 360px) 1fr;
-    align-items: start;
+  .layout-top {
+    grid-template-columns: 1fr 380px;
   }
+
+  .activity-rail {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+  }
+}
+
+.activity-rail .activity-console {
+  min-height: 280px;
+}
+
+.activity-rail .activity-body {
+  max-height: min(52vh, 420px);
+}
+
+.channel-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.channel-add-row input {
+  flex: 1;
+  background: var(--bg0);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  padding: 0.55rem 0.7rem;
+}
+
+.channel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.channel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.45rem 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-2) 18%, var(--bg0));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 35%, transparent);
+  font-size: 0.88rem;
+}
+
+.chip-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+}
+
+.chip-remove:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.chip-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .panel {

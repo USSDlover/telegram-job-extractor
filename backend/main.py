@@ -10,11 +10,15 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from activity_log import broadcast_log, sse_event_stream, subscribe
 from config import settings
-from scraper import discover_channel_categories, scrape_and_process_channel
+from scraper import (
+    discover_channels_categories,
+    normalize_channels,
+    scrape_and_process_channels,
+)
 from storage import get_distinct_categories, get_jobs_sorted
 
 logging.basicConfig(
@@ -25,13 +29,34 @@ logger = logging.getLogger(__name__)
 
 
 class DiscoverRequest(BaseModel):
-    channel: str = Field(..., examples=["@tech_jobs_channel"])
+    channels: List[str] = Field(default_factory=list, examples=[["@tech_jobs", "@remote_work"]])
+    channel: Optional[str] = Field(
+        default=None,
+        description="Legacy single-channel field; merged into channels when present.",
+    )
+
+    @model_validator(mode="after")
+    def require_channels(self) -> "DiscoverRequest":
+        try:
+            normalize_channels(self.channels, self.channel)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+        return self
 
 
 class ExtractRequest(BaseModel):
-    channel: str
+    channels: List[str] = Field(default_factory=list)
+    channel: Optional[str] = None
     selected_categories: List[str] = Field(default_factory=list)
     selected_titles: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def require_channels(self) -> "ExtractRequest":
+        try:
+            normalize_channels(self.channels, self.channel)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+        return self
 
 
 @asynccontextmanager
@@ -56,14 +81,14 @@ app.add_middleware(
 
 @app.post("/api/discover")
 async def discover(body: DiscoverRequest):
+    channels = normalize_channels(body.channels, body.channel)
     await broadcast_log(
         "DISCOVER_STARTED",
-        f"Discovery requested for {body.channel}...",
-        {"channel": body.channel},
+        f"Discovery requested for {len(channels)} channel(s)...",
+        {"channels": channels},
     )
     try:
-        result = await discover_channel_categories(body.channel)
-        return result
+        return await discover_channels_categories(channels)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -75,34 +100,36 @@ async def discover(body: DiscoverRequest):
 
 @app.post("/api/extract", status_code=202)
 async def extract(body: ExtractRequest, background_tasks: BackgroundTasks):
-    if not body.channel.strip():
-        raise HTTPException(status_code=400, detail="channel is required")
+    channels = normalize_channels(body.channels, body.channel)
     await broadcast_log(
         "EXTRACTION_QUEUED",
-        f"Extraction queued for {body.channel}.",
+        f"Extraction queued for {len(channels)} channel(s).",
         {
-            "channel": body.channel,
+            "channels": channels,
             "selected_categories": body.selected_categories,
             "selected_titles": body.selected_titles,
         },
     )
     background_tasks.add_task(
-        scrape_and_process_channel,
-        body.channel,
+        scrape_and_process_channels,
+        channels,
         body.selected_categories,
         body.selected_titles,
     )
     return {
         "status": "started",
-        "channel": body.channel,
-        "message": "Extraction pipeline started in background",
+        "channels": channels,
+        "message": f"Extraction pipeline started for {len(channels)} channel(s)",
     }
 
 
 @app.get("/api/jobs")
-async def list_jobs(category: Optional[str] = Query(default=None)):
-    jobs = await get_jobs_sorted(category=category)
-    return {"jobs": jobs, "total": len(jobs)}
+async def list_jobs(
+    category: Optional[str] = Query(default=None),
+    sort_by: str = Query(default="date_desc"),
+):
+    jobs = await get_jobs_sorted(category=category, sort_by=sort_by)
+    return {"jobs": jobs, "total": len(jobs), "sort_by": sort_by}
 
 
 @app.get("/api/categories")

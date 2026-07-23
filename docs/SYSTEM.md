@@ -42,50 +42,54 @@ Single-repository application that joins Telegram channels, discovers job catego
 
 ### Flow Summary
 
-1. User enters a channel username in **ControlPanel** (SSE client already connected to `/api/stream-logs`).
-2. `POST /api/discover` → Telethon samples ~20 recent text posts → Gemma 2 returns `CategoryDiscoveryResult`; stages stream live to **ActivityConsole**.
-3. User selects categories/titles → `POST /api/extract` starts a FastAPI `BackgroundTasks` job; progress events (`EXTRACTION_PROGRESS`, `JOB_SAVED`) continue over SSE.
-4. Scraper iterates channel messages → Gemma 2 extracts `ExtractedJob` → filter by selection → append to `jobs.json`.
-5. **JobDashboard** auto-refreshes on `JOB_SAVED` (and via Refresh Feed) using `GET /api/jobs` + `GET /api/categories`.
+1. User adds one or more channel usernames in **ControlPanel** (SSE client already connected to `/api/stream-logs`). Activity Console sits in a sticky top-right rail on desktop.
+2. `POST /api/discover` → Telethon samples each channel → aggregated texts → Gemma 2 returns unified `CategoryDiscoveryResult`; stages stream live to **ActivityConsole**.
+3. User selects categories/titles → `POST /api/extract` starts a FastAPI `BackgroundTasks` job across all channels sequentially; progress events continue over SSE.
+4. Scraper iterates each channel’s messages → Gemma 2 extracts `ExtractedJob` → filter by selection → append to `jobs.json`.
+5. **JobDashboard** auto-refreshes on `JOB_SAVED` (and via Refresh Feed) using `GET /api/jobs` + `GET /api/categories`, with optional `sort_by`.
 
 ## API Specification
 
 ### `POST /api/discover`
 
-Join/access a channel and discover job categories from recent samples.
+Join/access one or more channels and discover a unified category/title set from aggregated samples.
 
 **Request body**
 
 ```json
 {
-  "channel": "@tech_jobs_channel"
+  "channels": ["@tech_jobs", "@frontend_jobs", "@remote_work"]
 }
 ```
+
+Legacy single-channel `channel` is still accepted and merged into `channels`.
 
 **Response `200`**
 
 ```json
 {
-  "channel": "@tech_jobs_channel",
+  "channels": ["@tech_jobs", "@frontend_jobs", "@remote_work"],
   "discovered_categories": ["Engineering", "Hospitality"],
   "suggested_titles": ["Frontend Developer", "Full Stack", "Waiter"],
-  "sample_count": 20
+  "sample_count": 54,
+  "per_channel": { "@tech_jobs": 20, "@frontend_jobs": 18, "@remote_work": 16 },
+  "errors": []
 }
 ```
 
-**Errors**: `400` invalid channel; `502` Telegram/Ollama failure.
+**Errors**: `400` invalid/empty channels; `502` Telegram/Ollama failure.
 
 ---
 
 ### `POST /api/extract`
 
-Trigger background scrape + AI extraction for selected filters.
+Trigger background scrape + AI extraction across all configured channels.
 
 **Request body**
 
 ```json
 {
-  "channel": "@tech_jobs_channel",
+  "channels": ["@tech_jobs", "@frontend_jobs"],
   "selected_categories": ["Engineering"],
   "selected_titles": ["Frontend Developer", "Full Stack"]
 }
@@ -96,8 +100,8 @@ Trigger background scrape + AI extraction for selected filters.
 ```json
 {
   "status": "started",
-  "channel": "@tech_jobs_channel",
-  "message": "Extraction pipeline started in background"
+  "channels": ["@tech_jobs", "@frontend_jobs"],
+  "message": "Extraction pipeline started for 2 channel(s)"
 }
 ```
 
@@ -105,13 +109,14 @@ Trigger background scrape + AI extraction for selected filters.
 
 ### `GET /api/jobs`
 
-List stored jobs, newest first.
+List stored jobs with optional category filter and sort order.
 
 **Query parameters**
 
-| Param      | Type   | Required | Description                          |
-|------------|--------|----------|--------------------------------------|
-| `category` | string | no       | Exact category filter (case-sensitive) |
+| Param      | Type   | Required | Description |
+|------------|--------|----------|-------------|
+| `category` | string | no       | Exact category filter |
+| `sort_by`  | string | no       | `date_desc` (default), `date_asc`, `category_asc`, `title_asc` |
 
 **Response `200`**
 

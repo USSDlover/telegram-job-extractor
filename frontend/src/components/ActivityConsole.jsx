@@ -49,7 +49,7 @@ export default function ActivityConsole() {
         </button>
         {open && (
           <button type="button" className="btn tiny" onClick={clearLogs}>
-            Clear
+            Clear Logs
           </button>
         )}
       </header>

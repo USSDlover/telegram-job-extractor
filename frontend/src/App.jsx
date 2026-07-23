@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { ActivityProvider } from './activity'
+import ActivityConsole from './components/ActivityConsole'
 import ControlPanel from './components/ControlPanel'
 import JobDashboard from './components/JobDashboard'
 import './App.css'
@@ -29,10 +30,15 @@ export default function App() {
             Local Gemma 2 pipelines turn Telegram posts into filtered, English job cards.
           </p>
         </header>
-        <main className="layout">
+
+        <div className="layout-top">
           <ControlPanel onExtractionStarted={onExtractionStarted} />
-          <JobDashboard refreshToken={refreshToken} />
-        </main>
+          <aside className="activity-rail">
+            <ActivityConsole />
+          </aside>
+        </div>
+
+        <JobDashboard refreshToken={refreshToken} />
       </div>
     </ActivityProvider>
   )

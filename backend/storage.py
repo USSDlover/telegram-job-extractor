@@ -82,8 +82,11 @@ async def get_distinct_categories() -> list[str]:
     return sorted(cats)
 
 
-async def get_jobs_sorted(category: str | None = None) -> list[dict[str, Any]]:
-    """Return jobs newest-first; optional exact category filter."""
+async def get_jobs_sorted(
+    category: str | None = None,
+    sort_by: str = "date_desc",
+) -> list[dict[str, Any]]:
+    """Return jobs with optional category filter and sort order."""
     jobs = await read_jobs()
     if category:
         needle = category.strip()
@@ -93,7 +96,27 @@ async def get_jobs_sorted(category: str | None = None) -> list[dict[str, Any]]:
             if str(j.get("category") or "").strip() == needle
         ]
 
-    def sort_key(j: dict[str, Any]) -> str:
-        return str(j.get("date") or "")
+    key = (sort_by or "date_desc").strip().lower()
 
-    return sorted(jobs, key=sort_key, reverse=True)
+    if key == "date_asc":
+        jobs = sorted(jobs, key=lambda j: str(j.get("date") or ""), reverse=False)
+    elif key == "category_asc":
+        jobs = sorted(
+            jobs,
+            key=lambda j: (
+                str(j.get("category") or "").lower(),
+                str(j.get("date") or ""),
+            ),
+        )
+    elif key == "title_asc":
+        jobs = sorted(
+            jobs,
+            key=lambda j: (
+                str(j.get("title") or "").lower(),
+                str(j.get("date") or ""),
+            ),
+        )
+    else:  # date_desc default
+        jobs = sorted(jobs, key=lambda j: str(j.get("date") or ""), reverse=True)
+
+    return jobs

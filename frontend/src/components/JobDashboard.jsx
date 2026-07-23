@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchCategories, fetchJobs } from '../api'
+
+const SORT_OPTIONS = [
+  { value: 'date_desc', label: 'Newest First' },
+  { value: 'date_asc', label: 'Oldest First' },
+  { value: 'category_asc', label: 'Category Name' },
+  { value: 'title_asc', label: 'Job Title' },
+]
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -10,10 +17,34 @@ function formatDate(iso) {
   }
 }
 
+function sortJobsClient(jobs, sortBy) {
+  const list = [...jobs]
+  switch (sortBy) {
+    case 'date_asc':
+      return list.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+    case 'category_asc':
+      return list.sort((a, b) =>
+        String(a.category || '')
+          .toLowerCase()
+          .localeCompare(String(b.category || '').toLowerCase()),
+      )
+    case 'title_asc':
+      return list.sort((a, b) =>
+        String(a.title || '')
+          .toLowerCase()
+          .localeCompare(String(b.title || '').toLowerCase()),
+      )
+    case 'date_desc':
+    default:
+      return list.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+  }
+}
+
 export default function JobDashboard({ refreshToken = 0 }) {
   const [jobs, setJobs] = useState([])
   const [categories, setCategories] = useState([])
   const [category, setCategory] = useState('')
+  const [sortBy, setSortBy] = useState('date_desc')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -22,12 +53,11 @@ export default function JobDashboard({ refreshToken = 0 }) {
     setError('')
     try {
       const [jobsData, catsData] = await Promise.all([
-        fetchJobs(category || undefined),
+        fetchJobs(category || undefined, sortBy),
         fetchCategories(),
       ])
       setJobs(jobsData.jobs || [])
       setCategories(catsData.categories || [])
-      // If selected filter disappeared, reset to All
       const nextCats = catsData.categories || []
       if (category && !nextCats.includes(category)) {
         setCategory('')
@@ -37,11 +67,13 @@ export default function JobDashboard({ refreshToken = 0 }) {
     } finally {
       setLoading(false)
     }
-  }, [category])
+  }, [category, sortBy])
 
   useEffect(() => {
     refreshAll()
   }, [refreshAll, refreshToken])
+
+  const visibleJobs = useMemo(() => sortJobsClient(jobs, sortBy), [jobs, sortBy])
 
   return (
     <section className="panel job-dashboard">
@@ -66,6 +98,20 @@ export default function JobDashboard({ refreshToken = 0 }) {
               ))}
             </select>
           </label>
+          <label className="field inline">
+            <span>Sort By</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              disabled={loading}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" className="btn" onClick={refreshAll} disabled={loading}>
             {loading ? (
               <>
@@ -82,14 +128,14 @@ export default function JobDashboard({ refreshToken = 0 }) {
       {error && <p className="status err">{error}</p>}
       {loading && jobs.length === 0 && <p className="muted">Loading jobs…</p>}
 
-      {!loading && jobs.length === 0 && (
+      {!loading && visibleJobs.length === 0 && (
         <p className="muted empty">
           No jobs yet. Run discovery and extraction from the control board.
         </p>
       )}
 
       <ul className="job-list">
-        {jobs.map((job) => (
+        {visibleJobs.map((job) => (
           <li key={job.id || `${job.channel}-${job.message_id}`} className="job-card">
             <div className="job-top">
               <h3>{job.title || 'Untitled'}</h3>

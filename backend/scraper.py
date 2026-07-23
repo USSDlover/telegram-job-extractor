@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from typing import List
+from typing import List, Sequence
 
 from telethon import TelegramClient
 from telethon.errors import ChannelInvalidError, ChannelPrivateError, UsernameInvalidError
@@ -28,6 +28,30 @@ def _normalize_channel(channel_username: str) -> str:
     if not name.startswith("@"):
         name = f"@{name}"
     return name
+
+
+def normalize_channels(channels: Sequence[str] | None, channel: str | None = None) -> List[str]:
+    """Normalize a list of channels; also accept legacy single `channel`."""
+    raw: list[str] = []
+    if channels:
+        raw.extend(channels)
+    if channel and channel.strip():
+        raw.append(channel)
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        try:
+            name = _normalize_channel(item)
+        except ValueError:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(name)
+    if not normalized:
+        raise ValueError("At least one channel username is required")
+    return normalized
 
 
 @asynccontextmanager
@@ -82,6 +106,32 @@ def _message_text(msg: Message) -> str:
     return (msg.message or "").strip()
 
 
+async def _sample_with_client(
+    client: TelegramClient,
+    channel: str,
+    limit: int,
+) -> List[str]:
+    entity = await _ensure_joined(client, channel)
+    await broadcast_log(
+        "FETCHING_POSTS",
+        f"Sampling up to {limit} recent text posts from {channel}...",
+        {"channel": channel, "limit": limit},
+    )
+    texts: List[str] = []
+    async for msg in client.iter_messages(entity, limit=limit * 2):
+        text = _message_text(msg)
+        if text:
+            texts.append(text)
+        if len(texts) >= limit:
+            break
+    await broadcast_log(
+        "FETCHING_POSTS",
+        f"Fetched {len(texts)} recent posts from {channel}.",
+        {"channel": channel, "count": len(texts)},
+    )
+    return texts
+
+
 async def sample_channel_messages(
     channel_username: str,
     limit: int | None = None,
@@ -89,27 +139,9 @@ async def sample_channel_messages(
     """Fetch recent text posts from a channel for category discovery."""
     channel = _normalize_channel(channel_username)
     limit = limit or settings.sample_limit
-    texts: List[str] = []
-
     try:
         async with telegram_client() as client:
-            entity = await _ensure_joined(client, channel)
-            await broadcast_log(
-                "FETCHING_POSTS",
-                f"Sampling up to {limit} recent text posts from {channel}...",
-                {"channel": channel, "limit": limit},
-            )
-            async for msg in client.iter_messages(entity, limit=limit * 2):
-                text = _message_text(msg)
-                if text:
-                    texts.append(text)
-                if len(texts) >= limit:
-                    break
-            await broadcast_log(
-                "FETCHING_POSTS",
-                f"Fetched {len(texts)} recent posts from channel.",
-                {"channel": channel, "count": len(texts)},
-            )
+            return await _sample_with_client(client, channel, limit)
     except (ChannelPrivateError, ChannelInvalidError, UsernameInvalidError) as exc:
         await broadcast_log(
             "ERROR",
@@ -118,38 +150,86 @@ async def sample_channel_messages(
         )
         raise ValueError(f"Cannot access channel {channel}: {exc}") from exc
 
-    return texts
 
+async def discover_channels_categories(channels: Sequence[str]) -> dict:
+    """Sample multiple channels, aggregate texts, discover unified categories/titles."""
+    channel_list = normalize_channels(channels)
+    all_samples: List[str] = []
+    per_channel: dict[str, int] = {}
+    errors: list[str] = []
 
-async def discover_channel_categories(channel_username: str) -> dict:
-    channel = _normalize_channel(channel_username)
+    await broadcast_log(
+        "DISCOVER_STARTED",
+        f"Discovery across {len(channel_list)} channel(s)...",
+        {"channels": channel_list},
+    )
+
     try:
-        samples = await sample_channel_messages(channel_username)
-        result = await discover_categories_from_samples(samples)
-        await broadcast_log(
-            "DISCOVERED_CATEGORIES",
-            f"AI returned {len(result.discovered_categories)} categories and "
-            f"{len(result.suggested_titles)} titles.",
-            {
-                "channel": channel,
-                "discovered_categories": result.discovered_categories,
-                "suggested_titles": result.suggested_titles,
-                "sample_count": len(samples),
-            },
-        )
-        return {
-            "channel": channel,
+        async with telegram_client() as client:
+            for idx, channel in enumerate(channel_list, start=1):
+                await broadcast_log(
+                    "JOINING_TELEGRAM",
+                    f"Processing channel {idx}/{len(channel_list)}: {channel}...",
+                    {
+                        "channel": channel,
+                        "index": idx,
+                        "total": len(channel_list),
+                    },
+                )
+                try:
+                    samples = await _sample_with_client(
+                        client, channel, settings.sample_limit
+                    )
+                    per_channel[channel] = len(samples)
+                    all_samples.extend(samples)
+                except (
+                    ChannelPrivateError,
+                    ChannelInvalidError,
+                    UsernameInvalidError,
+                    ValueError,
+                ) as exc:
+                    errors.append(f"{channel}: {exc}")
+                    await broadcast_log(
+                        "ERROR",
+                        f"Skipping {channel}: {exc}",
+                        {"channel": channel},
+                    )
+    except Exception as exc:
+        await broadcast_log("ERROR", f"Discovery failed: {exc}", {"channels": channel_list})
+        raise
+
+    if not all_samples and errors:
+        raise ValueError("; ".join(errors))
+
+    result = await discover_categories_from_samples(all_samples)
+    await broadcast_log(
+        "DISCOVERED_CATEGORIES",
+        f"AI returned {len(result.discovered_categories)} categories and "
+        f"{len(result.suggested_titles)} titles across {len(channel_list)} channel(s).",
+        {
+            "channels": channel_list,
             "discovered_categories": result.discovered_categories,
             "suggested_titles": result.suggested_titles,
-            "sample_count": len(samples),
-        }
-    except Exception as exc:
-        await broadcast_log(
-            "ERROR",
-            f"Discovery failed: {exc}",
-            {"channel": channel},
-        )
-        raise
+            "sample_count": len(all_samples),
+            "per_channel": per_channel,
+            "errors": errors,
+        },
+    )
+    return {
+        "channels": channel_list,
+        "discovered_categories": result.discovered_categories,
+        "suggested_titles": result.suggested_titles,
+        "sample_count": len(all_samples),
+        "per_channel": per_channel,
+        "errors": errors,
+    }
+
+
+# Backward-compatible alias
+async def discover_channel_categories(channel_username: str) -> dict:
+    result = await discover_channels_categories([channel_username])
+    result["channel"] = result["channels"][0] if result["channels"] else channel_username
+    return result
 
 
 def _matches_filters(
@@ -176,111 +256,173 @@ def _matches_filters(
     return title_ok
 
 
-async def scrape_and_process_channel(
-    channel_username: str,
+async def _scrape_one_channel(
+    client: TelegramClient,
+    channel: str,
     target_categories: List[str],
     target_titles: List[str],
-) -> None:
-    """
-    Background task: iterate channel posts, extract jobs via Gemma 2,
-    filter by selection, and persist matches to jobs.json.
-    """
-    channel = _normalize_channel(channel_username)
+    channel_index: int,
+    channel_total: int,
+) -> tuple[int, int]:
     total_limit = settings.scrape_limit
+    saved = 0
+    processed = 0
+
     await broadcast_log(
         "EXTRACTION_STARTED",
-        f"Starting extraction pipeline for {channel} (limit {total_limit}).",
+        f"Processing channel {channel_index}/{channel_total}: {channel}...",
         {
             "channel": channel,
+            "index": channel_index,
+            "total": channel_total,
             "selected_categories": target_categories,
             "selected_titles": target_titles,
             "limit": total_limit,
         },
     )
-    batch: list[dict] = []
-    saved = 0
-    processed = 0
+
+    entity = await _ensure_joined(client, channel)
+    await broadcast_log(
+        "FETCHING_POSTS",
+        f"Iterating up to {total_limit} messages from {channel}...",
+        {"channel": channel, "limit": total_limit},
+    )
+
+    async for msg in client.iter_messages(entity, limit=total_limit):
+        text = _message_text(msg)
+        if not text:
+            continue
+        processed += 1
+        await broadcast_log(
+            "EXTRACTION_PROGRESS",
+            f"[{channel}] Processing post {processed}/{total_limit} through Ollama...",
+            {
+                "channel": channel,
+                "current": processed,
+                "total": total_limit,
+                "message_id": msg.id,
+                "channel_index": channel_index,
+                "channel_total": channel_total,
+            },
+        )
+        try:
+            extracted = await extract_job_data(text)
+        except Exception as exc:
+            logger.warning("Skipping message %s: %s", msg.id, exc)
+            await broadcast_log(
+                "ERROR",
+                f"Failed extracting message {msg.id}: {exc}",
+                {"message_id": msg.id, "channel": channel},
+            )
+            continue
+        if not extracted:
+            continue
+        if not _matches_filters(
+            extracted.title,
+            extracted.category,
+            target_categories,
+            target_titles,
+        ):
+            continue
+
+        date_iso = msg.date.isoformat() if msg.date else None
+        record = {
+            "id": f"{channel.lstrip('@')}_{msg.id}",
+            "channel": channel,
+            "message_id": msg.id,
+            "date": date_iso,
+            **extracted.model_dump(),
+        }
+        await upsert_jobs([record])
+        saved += 1
+        await broadcast_log(
+            "JOB_SAVED",
+            f"Extracted position: [{extracted.title}] from {channel}, saved to storage.",
+            {
+                "job": record,
+                "title": extracted.title,
+                "category": extracted.category,
+                "channel": channel,
+            },
+        )
+
+    await broadcast_log(
+        "EXTRACTION_DONE",
+        f"Finished {channel}: saved {saved} job(s); scanned {processed} text posts.",
+        {
+            "channel": channel,
+            "saved": saved,
+            "processed": processed,
+            "index": channel_index,
+            "total": channel_total,
+        },
+    )
+    return saved, processed
+
+
+async def scrape_and_process_channels(
+    channels: Sequence[str],
+    target_categories: List[str],
+    target_titles: List[str],
+) -> None:
+    """Background task: extract jobs from multiple channels sequentially."""
+    channel_list = normalize_channels(channels)
+    total_saved = 0
+    total_processed = 0
+
+    await broadcast_log(
+        "EXTRACTION_QUEUED",
+        f"Multi-channel extraction starting for {len(channel_list)} channel(s).",
+        {"channels": channel_list},
+    )
 
     try:
         async with telegram_client() as client:
-            entity = await _ensure_joined(client, channel)
-            await broadcast_log(
-                "FETCHING_POSTS",
-                f"Iterating up to {total_limit} messages from {channel}...",
-                {"channel": channel, "limit": total_limit},
-            )
-
-            async for msg in client.iter_messages(entity, limit=total_limit):
-                text = _message_text(msg)
-                if not text:
-                    continue
-                processed += 1
-                await broadcast_log(
-                    "EXTRACTION_PROGRESS",
-                    f"Processing post {processed}/{total_limit} through Ollama...",
-                    {
-                        "channel": channel,
-                        "current": processed,
-                        "total": total_limit,
-                        "message_id": msg.id,
-                    },
-                )
+            for idx, channel in enumerate(channel_list, start=1):
                 try:
-                    extracted = await extract_job_data(text)
+                    saved, processed = await _scrape_one_channel(
+                        client,
+                        channel,
+                        target_categories,
+                        target_titles,
+                        idx,
+                        len(channel_list),
+                    )
+                    total_saved += saved
+                    total_processed += processed
                 except Exception as exc:
-                    logger.warning("Skipping message %s: %s", msg.id, exc)
+                    logger.exception("Channel extraction failed for %s", channel)
                     await broadcast_log(
                         "ERROR",
-                        f"Failed extracting message {msg.id}: {exc}",
-                        {"message_id": msg.id},
+                        f"Extraction failed for {channel}: {exc}",
+                        {"channel": channel},
                     )
-                    continue
-                if not extracted:
-                    continue
-                if not _matches_filters(
-                    extracted.title,
-                    extracted.category,
-                    target_categories,
-                    target_titles,
-                ):
-                    continue
-
-                date_iso = msg.date.isoformat() if msg.date else None
-                record = {
-                    "id": f"{channel.lstrip('@')}_{msg.id}",
-                    "channel": channel,
-                    "message_id": msg.id,
-                    "date": date_iso,
-                    **extracted.model_dump(),
-                }
-                batch.append(record)
-                await upsert_jobs([record])
-                saved += 1
-                await broadcast_log(
-                    "JOB_SAVED",
-                    f"Extracted position: [{extracted.title}], saved to storage.",
-                    {
-                        "job": record,
-                        "title": extracted.title,
-                        "category": extracted.category,
-                    },
-                )
-                batch = []
 
         await broadcast_log(
             "EXTRACTION_DONE",
-            f"Extraction finished for {channel}. Saved {saved} job(s); scanned {processed} text posts.",
-            {"channel": channel, "saved": saved, "processed": processed},
+            f"All channels finished. Saved {total_saved} job(s) across "
+            f"{len(channel_list)} channel(s); scanned {total_processed} text posts.",
+            {
+                "channels": channel_list,
+                "saved": total_saved,
+                "processed": total_processed,
+            },
         )
     except Exception as exc:
-        logger.exception("scrape_and_process_channel failed for %s: %s", channel, exc)
+        logger.exception("scrape_and_process_channels failed: %s", exc)
         await broadcast_log(
             "ERROR",
-            f"Extraction failed for {channel}: {exc}",
-            {"channel": channel},
+            f"Multi-channel extraction failed: {exc}",
+            {"channels": channel_list},
         )
-        if batch:
-            try:
-                await upsert_jobs(batch)
-            except Exception:
-                logger.exception("Failed to flush remaining jobs after error")
+
+
+async def scrape_and_process_channel(
+    channel_username: str,
+    target_categories: List[str],
+    target_titles: List[str],
+) -> None:
+    """Backward-compatible single-channel extraction."""
+    await scrape_and_process_channels(
+        [channel_username], target_categories, target_titles
+    )

@@ -9,21 +9,27 @@ async function parseResponse(res) {
   return data
 }
 
-export async function discoverChannel(channel) {
+export async function discoverChannels(channels) {
   const res = await fetch('/api/discover', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ channel }),
+    body: JSON.stringify({ channels }),
   })
   return parseResponse(res)
 }
 
-export async function startExtraction(channel, selectedCategories, selectedTitles) {
+/** @deprecated use discoverChannels */
+export async function discoverChannel(channel) {
+  return discoverChannels([channel])
+}
+
+export async function startExtraction(channels, selectedCategories, selectedTitles) {
+  const list = Array.isArray(channels) ? channels : [channels]
   const res = await fetch('/api/extract', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({
-      channel,
+      channels: list,
       selected_categories: selectedCategories,
       selected_titles: selectedTitles,
     }),
@@ -31,8 +37,11 @@ export async function startExtraction(channel, selectedCategories, selectedTitle
   return parseResponse(res)
 }
 
-export async function fetchJobs(category) {
-  const qs = category ? `?category=${encodeURIComponent(category)}` : ''
+export async function fetchJobs(category, sortBy = 'date_desc') {
+  const params = new URLSearchParams()
+  if (category) params.set('category', category)
+  if (sortBy) params.set('sort_by', sortBy)
+  const qs = params.toString() ? `?${params.toString()}` : ''
   const res = await fetch(`/api/jobs${qs}`)
   return parseResponse(res)
 }
