@@ -72,17 +72,28 @@ async def upsert_jobs(new_jobs: list[dict[str, Any]]) -> int:
 
 
 async def get_distinct_categories() -> list[str]:
+    """Return unique non-empty categories currently stored in jobs.json."""
     jobs = await read_jobs()
-    cats = sorted({j.get("category") for j in jobs if j.get("category")})
-    return cats
+    cats = {
+        str(j.get("category")).strip()
+        for j in jobs
+        if j.get("category") and str(j.get("category")).strip()
+    }
+    return sorted(cats)
 
 
 async def get_jobs_sorted(category: str | None = None) -> list[dict[str, Any]]:
+    """Return jobs newest-first; optional exact category filter."""
     jobs = await read_jobs()
     if category:
-        jobs = [j for j in jobs if j.get("category") == category]
+        needle = category.strip()
+        jobs = [
+            j
+            for j in jobs
+            if str(j.get("category") or "").strip() == needle
+        ]
 
     def sort_key(j: dict[str, Any]) -> str:
-        return j.get("date") or ""
+        return str(j.get("date") or "")
 
     return sorted(jobs, key=sort_key, reverse=True)

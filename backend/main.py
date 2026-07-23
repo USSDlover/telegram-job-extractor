@@ -1,18 +1,18 @@
-"""FastAPI entry point: API routes + static React UI."""
+"""FastAPI entry point: API routes, SSE activity stream, static React UI."""
 
 from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import List, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from activity_log import broadcast_log, sse_event_stream, subscribe
 from config import settings
 from scraper import discover_channel_categories, scrape_and_process_channel
 from storage import get_distinct_categories, get_jobs_sorted
@@ -56,6 +56,11 @@ app.add_middleware(
 
 @app.post("/api/discover")
 async def discover(body: DiscoverRequest):
+    await broadcast_log(
+        "DISCOVER_STARTED",
+        f"Discovery requested for {body.channel}...",
+        {"channel": body.channel},
+    )
     try:
         result = await discover_channel_categories(body.channel)
         return result
@@ -72,6 +77,15 @@ async def discover(body: DiscoverRequest):
 async def extract(body: ExtractRequest, background_tasks: BackgroundTasks):
     if not body.channel.strip():
         raise HTTPException(status_code=400, detail="channel is required")
+    await broadcast_log(
+        "EXTRACTION_QUEUED",
+        f"Extraction queued for {body.channel}.",
+        {
+            "channel": body.channel,
+            "selected_categories": body.selected_categories,
+            "selected_titles": body.selected_titles,
+        },
+    )
     background_tasks.add_task(
         scrape_and_process_channel,
         body.channel,
@@ -97,6 +111,28 @@ async def list_categories():
     return {"categories": categories}
 
 
+@app.get("/api/stream-logs")
+async def stream_logs(request: Request):
+    """Server-Sent Events stream of pipeline activity logs."""
+    queue = await subscribe()
+
+    async def event_generator():
+        async for chunk in sse_event_stream(queue):
+            if await request.is_disconnected():
+                break
+            yield chunk
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
@@ -111,7 +147,6 @@ if _dist.is_dir():
 
     @app.get("/{full_path:path}")
     async def spa_fallback(full_path: str):
-        # Never hijack API (already registered above)
         candidate = _dist / full_path
         if full_path and candidate.is_file():
             return FileResponse(candidate)

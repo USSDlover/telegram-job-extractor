@@ -17,35 +17,31 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const loadCategories = useCallback(async () => {
-    try {
-      const data = await fetchCategories()
-      setCategories(data.categories || [])
-    } catch {
-      /* non-fatal */
-    }
-  }, [])
-
-  const loadJobs = useCallback(async () => {
+  const refreshAll = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchJobs(category || undefined)
-      setJobs(data.jobs || [])
+      const [jobsData, catsData] = await Promise.all([
+        fetchJobs(category || undefined),
+        fetchCategories(),
+      ])
+      setJobs(jobsData.jobs || [])
+      setCategories(catsData.categories || [])
+      // If selected filter disappeared, reset to All
+      const nextCats = catsData.categories || []
+      if (category && !nextCats.includes(category)) {
+        setCategory('')
+      }
     } catch (err) {
-      setError(err.message || 'Failed to load jobs')
+      setError(err.message || 'Failed to refresh feed')
     } finally {
       setLoading(false)
     }
   }, [category])
 
   useEffect(() => {
-    loadCategories()
-  }, [loadCategories, refreshToken])
-
-  useEffect(() => {
-    loadJobs()
-  }, [loadJobs, refreshToken])
+    refreshAll()
+  }, [refreshAll, refreshToken])
 
   return (
     <section className="panel job-dashboard">
@@ -70,17 +66,26 @@ export default function JobDashboard({ refreshToken = 0 }) {
               ))}
             </select>
           </label>
-          <button type="button" className="btn" onClick={loadJobs} disabled={loading}>
-            Refresh Feed
+          <button type="button" className="btn" onClick={refreshAll} disabled={loading}>
+            {loading ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Refreshing…
+              </>
+            ) : (
+              'Refresh Feed'
+            )}
           </button>
         </div>
       </header>
 
       {error && <p className="status err">{error}</p>}
-      {loading && <p className="muted">Loading jobs…</p>}
+      {loading && jobs.length === 0 && <p className="muted">Loading jobs…</p>}
 
       {!loading && jobs.length === 0 && (
-        <p className="muted empty">No jobs yet. Run discovery and extraction from the control board.</p>
+        <p className="muted empty">
+          No jobs yet. Run discovery and extraction from the control board.
+        </p>
       )}
 
       <ul className="job-list">

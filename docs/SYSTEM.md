@@ -20,28 +20,33 @@ Single-repository application that joins Telegram channels, discovers job catego
                                                  │ Pydantic schemas │
                                                  └────────┬─────────┘
                                                           │
-                                          ExtractedJob / categories
-                                                          ▼
-┌─────────────────┐     asyncio.Lock I/O         ┌──────────────────┐
-│   jobs.json     │ ◄─────────────────────────── │   storage.py     │
-└────────┬────────┘                              └──────────────────┘
-         │
-         │  GET /api/jobs, /api/categories
-         ▼
+                              broadcast_log(stage, …)     │
+                                          │               │
+                                          ▼               ▼
+                                 ┌──────────────┐   ExtractedJob
+                                 │ activity_log │         │
+                                 │ SSE bus      │         ▼
+                                 └──────┬───────┘  ┌──────────────┐
+                                        │          │  storage.py  │
+                                        │          │  jobs.json   │
+                                        │          └──────┬───────┘
+                                        │                 │
+          GET /api/stream-logs          │    GET /api/jobs│/categories
+                                        ▼                 ▼
 ┌─────────────────┐     Static mount /           ┌──────────────────┐
-│    main.py      │ ───────────────────────────► │ React (Vite) UI  │
+│    main.py      │ ───────────────────────────► │ React UI         │
 │    FastAPI      │   frontend/dist              │ ControlPanel +   │
-│                 │ ◄─────────────────────────── │ JobDashboard     │
-└─────────────────┘   POST /api/discover|extract └──────────────────┘
+│                 │ ◄─────────────────────────── │ ActivityConsole +│
+└─────────────────┘   POST /api/discover|extract │ JobDashboard     │
 ```
 
 ### Flow Summary
 
-1. User enters a channel username in **ControlPanel**.
-2. `POST /api/discover` → Telethon samples ~20 recent text posts → Gemma 2 returns `CategoryDiscoveryResult`.
-3. User selects categories/titles → `POST /api/extract` starts a FastAPI `BackgroundTasks` job.
+1. User enters a channel username in **ControlPanel** (SSE client already connected to `/api/stream-logs`).
+2. `POST /api/discover` → Telethon samples ~20 recent text posts → Gemma 2 returns `CategoryDiscoveryResult`; stages stream live to **ActivityConsole**.
+3. User selects categories/titles → `POST /api/extract` starts a FastAPI `BackgroundTasks` job; progress events (`EXTRACTION_PROGRESS`, `JOB_SAVED`) continue over SSE.
 4. Scraper iterates channel messages → Gemma 2 extracts `ExtractedJob` → filter by selection → append to `jobs.json`.
-5. **JobDashboard** polls/refreshes `GET /api/jobs` (optional `category` filter) and renders cards with apply links.
+5. **JobDashboard** auto-refreshes on `JOB_SAVED` (and via Refresh Feed) using `GET /api/jobs` + `GET /api/categories`.
 
 ## API Specification
 
@@ -134,7 +139,7 @@ List stored jobs, newest first.
 
 ### `GET /api/categories`
 
-Distinct categories present in `jobs.json`.
+Distinct non-empty categories present in `jobs.json`.
 
 **Response `200`**
 
@@ -143,6 +148,25 @@ Distinct categories present in `jobs.json`.
   "categories": ["Engineering", "Hospitality"]
 }
 ```
+
+---
+
+### `GET /api/stream-logs`
+
+Server-Sent Events (SSE) activity stream. Clients connect with `EventSource`.
+
+**Event payload**
+
+```json
+{
+  "stage": "EXTRACTION_PROGRESS",
+  "message": "Processing post 4/100 through Ollama...",
+  "data": { "current": 4, "total": 100 },
+  "ts": "2026-07-23T17:00:00+00:00"
+}
+```
+
+Common stages: `JOINING_TELEGRAM`, `FETCHING_POSTS`, `CALLING_OLLAMA`, `DISCOVERED_CATEGORIES`, `EXTRACTION_PROGRESS`, `JOB_SAVED`, `EXTRACTION_DONE`, `ERROR`.
 
 ---
 

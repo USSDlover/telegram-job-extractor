@@ -9,6 +9,14 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        // Keep SSE connections open without buffering
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            if (req.url?.includes('/stream-logs')) {
+              proxyReq.setHeader('Accept', 'text/event-stream')
+            }
+          })
+        },
       },
     },
   },

@@ -294,3 +294,190 @@
     transform: translateY(0);
   }
 }
+
+.control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.btn.tiny {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.status.busy-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #c5d8ef;
+  margin-top: 0.75rem;
+}
+
+.spinner {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border-top-color: var(--accent-2);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.spinner.tiny {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-width: 1.5px;
+  display: inline-block;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.activity-console {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, #0a1018 70%, var(--bg2));
+  overflow: hidden;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid transparent;
+}
+
+.activity-console.open .activity-header {
+  border-bottom-color: var(--line);
+}
+
+.activity-toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  flex: 1;
+  text-align: left;
+}
+
+.activity-toggle .chevron {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.pulse {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.pulse.on {
+  background: var(--ok);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent);
+  animation: pulse 1.6s ease infinite;
+}
+
+.pulse.off {
+  background: var(--danger);
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.activity-body {
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.45rem 0.55rem 0.7rem;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.78rem;
+}
+
+.empty-log {
+  margin: 0.4rem 0.2rem;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 4.5rem auto 1fr;
+  gap: 0.45rem;
+  align-items: start;
+  line-height: 1.35;
+}
+
+.activity-time {
+  color: var(--muted);
+}
+
+.activity-row .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.badge.tone-telegram {
+  background: color-mix(in srgb, #4a8fd4 30%, transparent);
+  color: #9ec5f0;
+}
+
+.badge.tone-ollama {
+  background: color-mix(in srgb, #9b7bde 28%, transparent);
+  color: #d2c2f5;
+}
+
+.badge.tone-success {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--ok);
+}
+
+.badge.tone-error {
+  background: color-mix(in srgb, var(--danger) 28%, transparent);
+  color: #f0a0a6;
+}
+
+.badge.tone-info,
+.badge.tone-system {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  color: #c9d4e0;
+}
+
+.activity-msg {
+  color: color-mix(in srgb, var(--ink) 90%, var(--muted));
+  word-break: break-word;
+}

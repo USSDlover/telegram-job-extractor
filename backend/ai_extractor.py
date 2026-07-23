@@ -10,6 +10,7 @@ from typing import List, Optional
 import httpx
 from pydantic import BaseModel, Field, ValidationError
 
+from activity_log import broadcast_log
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,11 @@ async def discover_categories_from_samples(
 ) -> CategoryDiscoveryResult:
     """Analyze sampled channel posts and return categories + suggested titles."""
     if not sample_texts:
+        await broadcast_log(
+            "CALLING_OLLAMA",
+            "No sample posts available for category discovery.",
+            {"sample_count": 0},
+        )
         return CategoryDiscoveryResult()
 
     numbered = "\n\n---\n\n".join(
@@ -92,6 +98,11 @@ async def discover_categories_from_samples(
     user = f"Sample posts:\n\n{numbered}"
     schema = CategoryDiscoveryResult.model_json_schema()
 
+    await broadcast_log(
+        "CALLING_OLLAMA",
+        "Sending sample posts to Gemma 2 for category discovery...",
+        {"sample_count": len(sample_texts), "model": settings.ollama_model},
+    )
     try:
         raw = await _ollama_chat_json(system, user, schema)
         result = CategoryDiscoveryResult.model_validate(raw)
@@ -105,6 +116,11 @@ async def discover_categories_from_samples(
         return result
     except (httpx.HTTPError, json.JSONDecodeError, ValidationError, KeyError) as exc:
         logger.exception("Category discovery failed: %s", exc)
+        await broadcast_log(
+            "ERROR",
+            f"Ollama category discovery failed: {exc}",
+            {"model": settings.ollama_model},
+        )
         return CategoryDiscoveryResult()
 
 
@@ -132,6 +148,11 @@ async def extract_job_data(message_text: str) -> Optional[ExtractedJob]:
         job = ExtractedJob.model_validate(raw)
     except (httpx.HTTPError, json.JSONDecodeError, ValidationError, KeyError) as exc:
         logger.warning("Job extraction failed: %s", exc)
+        await broadcast_log(
+            "ERROR",
+            f"Ollama job extraction failed: {exc}",
+            {"model": settings.ollama_model},
+        )
         return None
 
     if not job.is_job_posting:
