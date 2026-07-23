@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Optional
+from typing import Any, Sequence
 from urllib.parse import urlparse
 
 import httpx
@@ -19,11 +19,26 @@ URL_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Skip obvious non-content / tracking hosts
 _SKIP_HOST_FRAGMENTS = (
     "t.me",
     "telegram.me",
     "telegram.org",
+)
+
+# Armenian / regional job boards — fetch deeper page content
+JOB_BOARD_HOST_FRAGMENTS = (
+    "job.am",
+    "staff.am",
+    "ijob.am",
+    "careercenter.am",
+    "list.am",
+    "hh.ru",
+    "hh.am",
+    "linkedin.com",
+    "greenhouse.io",
+    "lever.co",
+    "workable.com",
+    "ashbyhq.com",
 )
 
 DEFAULT_HEADERS = {
@@ -33,31 +48,59 @@ DEFAULT_HEADERS = {
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Language": "en-US,en;q=0.9,hy;q=0.8,ru;q=0.7",
 }
 
 SHORT_MESSAGE_CHARS = 150
 MAX_LINKS_PER_MESSAGE = 3
 MAX_DESC_CHARS = 1200
-MAX_HEADING_CHARS = 400
+MAX_PAGE_TEXT_CHARS = 3500
 
 
-def extract_urls(text: str) -> list[str]:
-    """Return unique external http(s) URLs from message text."""
+def is_telegram_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return any(skip in host for skip in _SKIP_HOST_FRAGMENTS)
+
+
+def is_job_board_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return any(frag in host for frag in JOB_BOARD_HOST_FRAGMENTS)
+
+
+def extract_urls(text: str, *, include_telegram: bool = False) -> list[str]:
+    """Return unique http(s) URLs from plain message text."""
     if not text:
         return []
     found: list[str] = []
     seen: set[str] = set()
     for match in URL_RE.findall(text):
         url = match.rstrip(".,;:!?)]}>'\"")
-        host = (urlparse(url).hostname or "").lower()
-        if any(skip in host for skip in _SKIP_HOST_FRAGMENTS):
+        if not include_telegram and is_telegram_url(url):
             continue
         if url in seen:
             continue
         seen.add(url)
         found.append(url)
     return found
+
+
+def partition_urls(urls: Sequence[str]) -> tuple[list[str], list[str]]:
+    """Split into (external_urls, telegram_urls), deduped, order preserved."""
+    external: list[str] = []
+    telegram: list[str] = []
+    seen: set[str] = set()
+    for raw in urls:
+        url = (raw or "").strip().rstrip(".,;:!?)]}>'\"")
+        if not url or not url.lower().startswith(("http://", "https://")):
+            continue
+        if url in seen:
+            continue
+        seen.add(url)
+        if is_telegram_url(url):
+            telegram.append(url)
+        else:
+            external.append(url)
+    return external, telegram
 
 
 def _meta_content(soup: BeautifulSoup, *, prop: str | None = None, name: str | None = None) -> str:
@@ -76,9 +119,26 @@ def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip()
 
 
-async def fetch_url_metadata(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
+def _extract_main_page_text(soup: BeautifulSoup) -> str:
+    """Pull readable body text for job board pages."""
+    for tag in soup(["script", "style", "noscript", "svg", "iframe", "nav", "footer", "header"]):
+        tag.decompose()
+    root = (
+        soup.find("article")
+        or soup.find("main")
+        or soup.find(attrs={"role": "main"})
+        or soup.find("div", class_=re.compile(r"(job|vacanc|content|description|detail)", re.I))
+        or soup.body
+        or soup
+    )
+    text = _clean_text(root.get_text(" ", strip=True))
+    return text[:MAX_PAGE_TEXT_CHARS]
+
+
+async def fetch_url_metadata(url: str, *, timeout: float = 8.0) -> dict[str, Any]:
     """
     Fetch Open Graph / HTML metadata for a URL.
+    For known job boards, also scrape deeper page body text.
     Never raises — returns a dict with ok=False on failure.
     """
     result: dict[str, Any] = {
@@ -87,6 +147,8 @@ async def fetch_url_metadata(url: str, *, timeout: float = 5.0) -> dict[str, Any
         "title": "",
         "description": "",
         "headings": [],
+        "page_text": "",
+        "deep": False,
         "error": None,
     }
     try:
@@ -103,7 +165,7 @@ async def fetch_url_metadata(url: str, *, timeout: float = 5.0) -> dict[str, Any
             if "html" not in content_type and "text/" not in content_type:
                 result["error"] = f"Unsupported content-type: {content_type or 'unknown'}"
                 return result
-            html = resp.text[:500_000]
+            html = resp.text[:700_000]
             final_url = str(resp.url)
     except httpx.TimeoutException:
         result["error"] = "timeout"
@@ -111,7 +173,7 @@ async def fetch_url_metadata(url: str, *, timeout: float = 5.0) -> dict[str, Any
     except httpx.HTTPError as exc:
         result["error"] = str(exc)
         return result
-    except Exception as exc:  # anti-bot / unexpected
+    except Exception as exc:
         result["error"] = str(exc)
         return result
 
@@ -128,21 +190,27 @@ async def fetch_url_metadata(url: str, *, timeout: float = 5.0) -> dict[str, Any
             or _meta_content(soup, name="twitter:description")
         )
         headings: list[str] = []
-        if len(description) < 80:
-            for tag_name in ("h1", "h2"):
-                for heading in soup.find_all(tag_name, limit=3):
-                    text = _clean_text(heading.get_text(" ", strip=True))
-                    if text and text not in headings:
-                        headings.append(text[:200])
-                if headings:
-                    break
+        for tag_name in ("h1", "h2"):
+            for heading in soup.find_all(tag_name, limit=4):
+                text = _clean_text(heading.get_text(" ", strip=True))
+                if text and text not in headings:
+                    headings.append(text[:200])
+            if len(headings) >= 2:
+                break
+
+        deep = is_job_board_url(final_url) or is_job_board_url(url)
+        page_text = ""
+        if deep or len(description) < 120:
+            page_text = _extract_main_page_text(soup)
 
         result.update(
             {
-                "ok": bool(title or description or headings),
+                "ok": bool(title or description or headings or page_text),
                 "title": title[:300],
                 "description": description[:MAX_DESC_CHARS],
-                "headings": headings[:5],
+                "headings": headings[:6],
+                "page_text": page_text,
+                "deep": deep,
                 "final_url": final_url,
             }
         )
@@ -161,63 +229,72 @@ def format_metadata_block(metadata_list: list[dict[str, Any]]) -> str:
         if not meta.get("ok"):
             lines.append(f"- URL: {meta.get('url')} (fetch failed: {meta.get('error')})")
             continue
-        lines.append(f"- URL: {meta.get('url')}")
+        lines.append(f"- URL: {meta.get('final_url') or meta.get('url')}")
         if meta.get("title"):
             lines.append(f"  - Page Title: {meta['title']}")
         if meta.get("description"):
             lines.append(f"  - Page Description: {meta['description']}")
         if meta.get("headings"):
             lines.append(f"  - Headings: {'; '.join(meta['headings'])}")
+        if meta.get("page_text"):
+            lines.append(f"  - Page Body: {meta['page_text'][:2500]}")
     return "\n".join(lines)
 
 
-def should_enrich_message(text: str) -> bool:
+def should_enrich_message(text: str, extra_urls: Sequence[str] | None = None) -> bool:
     """Short teaser / link-only posts that need page metadata."""
+    extra = [u for u in (extra_urls or []) if u]
+    if extra:
+        # Hidden webpage/entity links often pair with short captions
+        if not text or len(text.strip()) < 400:
+            return True
     if not text or not text.strip():
-        return False
+        return bool(extra)
     stripped = text.strip()
     urls = extract_urls(stripped)
-    if not urls:
+    if not urls and not extra:
         return False
-    # Always enrich very short posts; also enrich slightly longer teasers that are mostly a URL
     if len(stripped) < SHORT_MESSAGE_CHARS:
         return True
-    # Medium teasers dominated by a URL (little prose beyond the link)
     without_urls = URL_RE.sub("", stripped).strip()
-    return len(without_urls) < 80 and len(urls) >= 1
+    return len(without_urls) < 80 and (bool(urls) or bool(extra))
 
 
 async def enrich_message_with_link_metadata(
     text: str,
     *,
+    extra_urls: Sequence[str] | None = None,
     force: bool = False,
     max_links: int = MAX_LINKS_PER_MESSAGE,
     log: bool = True,
 ) -> tuple[str, list[dict[str, Any]]]:
     """
-    If the message is short/link-heavy, fetch page metadata and append it.
-    Returns (enriched_text, metadata_list). Failures never raise.
+    Fetch page metadata for plain-text and/or entity/webpage URLs and append it.
+    Prefer external job-board URLs over t.me links. Failures never raise.
     """
-    if not text:
-        return text, []
-    if not force and not should_enrich_message(text):
-        return text, []
+    base = (text or "").strip()
+    combined = list(dict.fromkeys([*extract_urls(base, include_telegram=True), *(extra_urls or [])]))
+    external, telegram = partition_urls(combined)
+    # Prefer scraping external destinations; only use telegram URLs if nothing else
+    to_fetch = (external or telegram)[:max_links]
 
-    urls = extract_urls(text)[:max_links]
-    if not urls:
+    if not to_fetch:
+        return text, []
+    if not force and not should_enrich_message(base, extra_urls=to_fetch):
         return text, []
 
     metadata_list: list[dict[str, Any]] = []
-    for url in urls:
+    for url in to_fetch:
         meta = await fetch_url_metadata(url)
         metadata_list.append(meta)
         if log:
             if meta.get("ok"):
                 title = meta.get("title") or meta.get("description") or "untitled"
+                kind = "deep" if meta.get("deep") else "preview"
                 await broadcast_log(
                     "LINK_SCRAPER",
-                    f'Fetched web preview for {url} -> "{title[:120]}"',
-                    {"url": url, "title": meta.get("title"), "ok": True},
+                    f'Fetched {kind} web content for {url} -> "{str(title)[:120]}"',
+                    {"url": url, "title": meta.get("title"), "ok": True, "deep": meta.get("deep")},
                 )
             else:
                 await broadcast_log(
@@ -227,11 +304,18 @@ async def enrich_message_with_link_metadata(
                 )
 
     ok_meta = [m for m in metadata_list if m.get("ok")]
+    link_lines = ""
+    if external:
+        link_lines = "\n\n[Detected External Links]:\n" + "\n".join(f"- {u}" for u in external)
+
     if not ok_meta:
+        if link_lines:
+            return f"[Telegram Message]:\n{base or '(no text)'}{link_lines}", metadata_list
         return text, metadata_list
 
     enriched = (
-        f"[Telegram Message]:\n{text.strip()}\n\n"
+        f"[Telegram Message]:\n{base or '(no text)'}"
+        f"{link_lines}\n\n"
         f"{format_metadata_block(ok_meta)}"
     )
     return enriched, metadata_list

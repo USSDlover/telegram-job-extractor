@@ -80,6 +80,13 @@ export async function deleteJob(jobId) {
   return parseResponse(res)
 }
 
+export async function clearAllJobs() {
+  const res = await fetch('/api/jobs/clear-all', {
+    method: 'DELETE',
+  })
+  return parseResponse(res)
+}
+
 export async function stopExtraction() {
   const res = await fetch('/api/stop-extraction', {
     method: 'POST',

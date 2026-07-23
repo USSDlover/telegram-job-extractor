@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional, Sequence
@@ -11,12 +12,20 @@ from typing import List, Optional, Sequence
 from telethon import TelegramClient
 from telethon.errors import ChannelInvalidError, ChannelPrivateError, UsernameInvalidError
 from telethon.tl.functions.channels import JoinChannelRequest
-from telethon.tl.types import Message
+from telethon.tl.types import (
+    Message,
+    MessageEntityTextUrl,
+    MessageEntityUrl,
+    MessageMediaWebPage,
+)
 
 from activity_log import broadcast_log
 from ai_extractor import discover_categories_from_samples, extract_job_data
 from config import settings
-from link_preview import enrich_message_with_link_metadata
+from link_preview import (
+    enrich_message_with_link_metadata,
+    partition_urls,
+)
 from storage import upsert_jobs
 
 logger = logging.getLogger(__name__)
@@ -131,6 +140,73 @@ def _message_text(msg: Message) -> str:
     return (msg.message or "").strip()
 
 
+def extract_all_urls_from_message(msg: Message) -> list[str]:
+    """
+    Collect URLs from plain text, rich entities (TextUrl/Url), and webpage previews.
+    """
+    found: list[str] = []
+    seen: set[str] = set()
+
+    def _add(url: str | None) -> None:
+        if not url:
+            return
+        cleaned = str(url).strip().rstrip(".,;:!?)]}>'\"")
+        if not cleaned.lower().startswith(("http://", "https://")):
+            return
+        if cleaned in seen:
+            return
+        seen.add(cleaned)
+        found.append(cleaned)
+
+    text = msg.message or ""
+    for match in re.findall(r"https?://[^\s<>\[\]()\"']+", text, flags=re.IGNORECASE):
+        _add(match)
+
+    # Prefer Telethon's UTF-16-safe entity helper when available
+    try:
+        for entity, entity_text in msg.get_entities_text():
+            if isinstance(entity, MessageEntityTextUrl):
+                _add(getattr(entity, "url", None))
+            elif isinstance(entity, MessageEntityUrl):
+                _add(entity_text)
+    except Exception:
+        if msg.entities and text:
+            for ent in msg.entities:
+                if isinstance(ent, MessageEntityTextUrl):
+                    _add(getattr(ent, "url", None))
+                elif isinstance(ent, MessageEntityUrl):
+                    try:
+                        _add(text[ent.offset : ent.offset + ent.length])
+                    except Exception:
+                        pass
+
+    media = msg.media
+    if isinstance(media, MessageMediaWebPage) or (
+        media is not None and hasattr(media, "webpage")
+    ):
+        webpage = getattr(media, "webpage", None)
+        if webpage is not None:
+            _add(getattr(webpage, "url", None))
+            _add(getattr(webpage, "display_url", None))
+
+    return found
+
+
+def build_message_payload(msg: Message) -> tuple[str, list[str]]:
+    """Return (display_text, all_urls) for enrichment / AI."""
+    text = _message_text(msg)
+    urls = extract_all_urls_from_message(msg)
+    external, _tg = partition_urls(urls)
+    if external and text:
+        # Ensure hidden destination links are visible to Gemma even before scrape
+        extras = "\n".join(external)
+        if extras not in text:
+            text = f"{text}\n\n[Embedded Links]:\n{extras}"
+    elif external and not text:
+        text = "[Embedded Links]:\n" + "\n".join(external)
+    return text, urls
+
+
 async def _sample_with_client(
     client: TelegramClient,
     channel: str,
@@ -143,10 +219,18 @@ async def _sample_with_client(
         {"channel": channel, "limit": limit},
     )
     texts: List[str] = []
-    async for msg in client.iter_messages(entity, limit=limit * 2):
-        text = _message_text(msg)
-        if text:
-            texts.append(text)
+    async for msg in client.iter_messages(entity, limit=limit * 3):
+        text, urls = build_message_payload(msg)
+        if not text and not urls:
+            continue
+        external, _ = partition_urls(urls)
+        enriched, _meta = await enrich_message_with_link_metadata(
+            text or "(no text)",
+            extra_urls=urls,
+            force=bool(external) and len((text or "").strip()) < 400,
+            log=False,
+        )
+        texts.append(enriched)
         if len(texts) >= limit:
             break
     await broadcast_log(
@@ -319,15 +403,25 @@ def telegram_message_url(channel: str, message_id: int | str) -> str:
     return f"https://t.me/{clean}/{message_id}"
 
 
-def _ensure_apply_links(links: list[str], fallback_url: str) -> list[str]:
-    valid = [
-        u.strip()
-        for u in (links or [])
-        if u and u.strip().lower().startswith(("http://", "https://"))
-    ]
-    if valid:
-        return list(dict.fromkeys(valid))
-    return [fallback_url]
+def resolve_apply_links(
+    ai_links: list[str] | None,
+    message_urls: list[str] | None,
+    telegram_fallback: str,
+) -> list[str]:
+    """
+    Prefer external apply URLs from AI + Telethon entities/webpage.
+    Use t.me post URL only when no external HTTP link exists.
+    """
+    combined: list[str] = []
+    for u in list(ai_links or []) + list(message_urls or []):
+        if u and str(u).strip():
+            combined.append(str(u).strip())
+    external, _telegram = partition_urls(combined)
+    if external:
+        return external
+    if telegram_fallback:
+        return [telegram_fallback]
+    return []
 
 
 def _aware_utc(dt: datetime | None) -> datetime | None:
@@ -419,8 +513,8 @@ async def _scrape_one_channel(
             skipped_out_of_range += 1
             continue
 
-        text = _message_text(msg)
-        if not text:
+        text, message_urls = build_message_payload(msg)
+        if not text and not message_urls:
             continue
 
         if is_stop_requested():
@@ -442,10 +536,15 @@ async def _scrape_one_channel(
                 "message_id": msg.id,
                 "channel_index": channel_index,
                 "channel_total": channel_total,
+                "detected_urls": message_urls[:5],
             },
         )
         try:
-            enriched_text, link_meta = await enrich_message_with_link_metadata(text)
+            enriched_text, link_meta = await enrich_message_with_link_metadata(
+                text or "(no text)",
+                extra_urls=message_urls,
+                force=bool(partition_urls(message_urls)[0]),
+            )
             if is_stop_requested():
                 await broadcast_log(
                     "EXTRACTION_STOPPED",
@@ -480,7 +579,11 @@ async def _scrape_one_channel(
             continue
 
         tg_url = telegram_message_url(channel, msg.id)
-        extracted.apply_links = _ensure_apply_links(extracted.apply_links, tg_url)
+        extracted.apply_links = resolve_apply_links(
+            extracted.apply_links,
+            message_urls,
+            tg_url,
+        )
 
         date_iso = msg_dt.isoformat()
         record = {
@@ -502,6 +605,7 @@ async def _scrape_one_channel(
                 "category": extracted.category,
                 "channel": channel,
                 "apply_links": extracted.apply_links,
+                "telegram_url": tg_url,
             },
         )
 

@@ -132,6 +132,15 @@ async def delete_job(job_id: str) -> bool:
         return deleted
 
 
+async def clear_all_jobs() -> int:
+    """Wipe jobs.json to an empty list. Returns how many jobs were removed."""
+    async with _lock:
+        existing = await _read_unlocked()
+        count = len(existing)
+        await _write_unlocked([])
+        return count
+
+
 async def get_distinct_categories() -> list[str]:
     """Return unique non-empty categories currently stored in jobs.json."""
     jobs = await read_jobs()

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { deleteJob, fetchCategories, fetchJobs } from '../api'
+import { clearAllJobs, deleteJob, fetchCategories, fetchJobs } from '../api'
 
 const SORT_OPTIONS = [
   { value: 'date_desc', label: 'Newest First' },
@@ -68,6 +68,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
+  const [clearing, setClearing] = useState(false)
 
   const refreshAll = useCallback(async () => {
     setLoading(true)
@@ -125,6 +126,26 @@ export default function JobDashboard({ refreshToken = 0 }) {
     }
   }
 
+  async function handleClearAll() {
+    if (jobs.length === 0 && categories.length === 0) return
+    const ok = window.confirm('Are you sure you want to delete all extracted jobs?')
+    if (!ok) return
+
+    setClearing(true)
+    setError('')
+    setJobs([])
+    setCategories([])
+    setCategory('')
+    try {
+      await clearAllJobs()
+    } catch (err) {
+      setError(err.message || 'Failed to clear jobs')
+      await refreshAll()
+    } finally {
+      setClearing(false)
+    }
+  }
+
   return (
     <section className="panel job-dashboard">
       <header className="panel-header row">
@@ -162,7 +183,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
               ))}
             </select>
           </label>
-          <button type="button" className="btn" onClick={refreshAll} disabled={loading}>
+          <button type="button" className="btn" onClick={refreshAll} disabled={loading || clearing}>
             {loading ? (
               <>
                 <span className="spinner" aria-hidden />
@@ -171,6 +192,14 @@ export default function JobDashboard({ refreshToken = 0 }) {
             ) : (
               'Refresh Feed'
             )}
+          </button>
+          <button
+            type="button"
+            className="btn danger-outline"
+            onClick={handleClearAll}
+            disabled={loading || clearing || (jobs.length === 0 && categories.length === 0)}
+          >
+            {clearing ? 'Clearing…' : 'Clear All Jobs'}
           </button>
         </div>
       </header>

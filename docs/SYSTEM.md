@@ -45,8 +45,8 @@ Single-repository application that joins Telegram channels, discovers job catego
 1. User adds one or more channel usernames in **ControlPanel** (SSE client already connected to `/api/stream-logs`). Activity Console sits in a sticky top-right rail on desktop.
 2. `POST /api/discover` → Telethon samples each channel → aggregated texts → Gemma 2 returns unified `CategoryDiscoveryResult`; stages stream live to **ActivityConsole**.
 3. User selects categories/titles → `POST /api/extract` starts a FastAPI `BackgroundTasks` job across all channels sequentially; progress events continue over SSE.
-4. Scraper iterates each channel’s messages → Gemma 2 extracts `ExtractedJob` → filter by selection → append to `jobs.json`.
-5. **JobDashboard** auto-refreshes on `JOB_SAVED` (and via Refresh Feed) using `GET /api/jobs` + `GET /api/categories`, with optional `sort_by`.
+4. Scraper iterates each channel’s messages → extracts URLs from text, Telethon entities, and webpage previews → optionally deep-scrapes job-board pages → Gemma 2 extracts `ExtractedJob` → filter by selection → append to `jobs.json` (external apply URL preferred; `telegram_url` as fallback metadata).
+5. **JobDashboard** auto-refreshes on `JOB_SAVED` (and via Refresh Feed) using `GET /api/jobs` + `GET /api/categories`, with optional `sort_by`. Supports per-job delete and **Clear All Jobs**.
 
 ## API Specification
 
@@ -133,12 +133,37 @@ List stored jobs with optional category filter and sort order.
       "category": "Engineering",
       "company": "Acme Corp",
       "apply_links": ["https://boards.greenhouse.io/acme/jobs/1"],
+      "telegram_url": "https://t.me/tech_jobs_channel/12345",
       "translated_summary": "React/TypeScript role, remote-friendly, 3+ years experience."
     }
   ],
   "total": 1
 }
 ```
+
+---
+
+### `DELETE /api/jobs/clear-all`
+
+Atomically wipe `jobs.json` to `[]` (registered before `/{job_id}` so the path is not captured as an id).
+
+**Response `200`**
+
+```json
+{
+  "success": true,
+  "message": "All jobs cleared successfully",
+  "removed": 42
+}
+```
+
+---
+
+### `DELETE /api/jobs/{job_id}`
+
+Delete a single job by unique `id` or `message_id`.
+
+**Response `200`**: `{ "success": true, "deleted_id": "..." }` — **404** if missing.
 
 ---
 

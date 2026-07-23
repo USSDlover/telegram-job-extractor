@@ -22,6 +22,7 @@ from scraper import (
     scrape_and_process_channels,
 )
 from storage import (
+    clear_all_jobs,
     delete_job,
     get_distinct_categories,
     get_jobs_sorted,
@@ -199,6 +200,22 @@ async def list_jobs(
         "preset": preset or "all_time",
         "start_date": start_date,
         "end_date": end_date,
+    }
+
+
+@app.delete("/api/jobs/clear-all")
+async def clear_jobs():
+    """Wipe all stored jobs (jobs.json → []). Must be registered before /{job_id}."""
+    removed = await clear_all_jobs()
+    await broadcast_log(
+        "JOBS_CLEARED",
+        f"All jobs cleared successfully ({removed} removed).",
+        {"removed": removed},
+    )
+    return {
+        "success": True,
+        "message": "All jobs cleared successfully",
+        "removed": removed,
     }
 
 

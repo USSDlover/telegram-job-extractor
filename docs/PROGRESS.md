@@ -32,6 +32,9 @@
 | Simplified control board | Done | Discover → select → extract (restored) |
 | Telegram link fallback | Done | `https://t.me/channel/msg_id` when no apply URL |
 | Category sampling restored | Done | `sample_channel_categories` + Join & Discover UI |
+| Telethon entity / webpage URL extraction | Done | `MessageEntityTextUrl` + `media.webpage.url` |
+| Deep job-board page scrape | Done | `job.am` / `staff.am` / etc. body text → Gemma |
+| Bulk clear all jobs | Done | `DELETE /api/jobs/clear-all` + Clear All Jobs UI |
 
 ## Architectural Decisions
 
@@ -53,6 +56,9 @@
 16. **Strict multilingual English output** — Armenian/Russian source text translated to English fields; optional `original_language`.
 17. **Telegram apply fallback** — Every saved job gets at least one HTTP link: extracted external apply URLs when present, otherwise `https://t.me/{channel}/{message_id}`. Feed buttons label Telegram URLs as **View Telegram Post**.
 18. **Category sampling restored** — Control Board step 1 runs `POST /api/discover` via `sample_channel_categories()` (Telethon samples + link enrichment + Gemma 2). Discovered categories merge with stored `GET /api/categories` results; Ollama failures surface as HTTP 400/502 instead of empty silent lists. Steps 2–3 retain selection, date-bounded extract, stop, deletion, and Telegram fallbacks.
+19. **Hidden link extraction** — Apply URLs are taken from plain text, Telethon `entities` (`MessageEntityTextUrl` / `MessageEntityUrl`), and `message.media.webpage.url`. External destinations (e.g. `job.am`) become primary `apply_links`; `telegram_url` stays as metadata / last-resort fallback.
+20. **Deep link preview scrape** — For known Armenian/regional job boards, `link_preview.py` fetches OG metadata plus main page body text and appends it to the Gemma payload.
+21. **Bulk job erasure** — `DELETE /api/jobs/clear-all` atomically writes `[]` under the storage lock; Job Feed exposes a confirmed **Clear All Jobs** control.
 
 ## Future Work
 
