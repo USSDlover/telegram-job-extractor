@@ -20,3 +20,4 @@ Thumbs.db
 *.tmp
 jobs.json.tmp
 backend/requirements_full.txt
+debug_samples.json.tmp

@@ -37,8 +37,15 @@ class Settings:
             os.getenv("JOBS_FILE"),
             _ROOT / "jobs.json",
         )
+        self.debug_samples_file: Path = _resolve_path(
+            os.getenv("DEBUG_SAMPLES_FILE"),
+            _ROOT / "debug_samples.json",
+        )
         self.scrape_limit: int = int(os.getenv("SCRAPE_LIMIT", "100"))
         self.sample_limit: int = int(os.getenv("SAMPLE_LIMIT", "20"))
+        # Keep discovery prompts inside a safe context window
+        self.discovery_chunk_posts: int = int(os.getenv("DISCOVERY_CHUNK_POSTS", "25"))
+        self.discovery_chunk_chars: int = int(os.getenv("DISCOVERY_CHUNK_CHARS", "14000"))
         self.frontend_dist: Path = _ROOT / "frontend" / "dist"
 
 

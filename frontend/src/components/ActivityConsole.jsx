@@ -6,6 +6,7 @@ const STAGE_META = {
   DISCOVER_STARTED: { label: 'Pipeline', tone: 'info' },
   JOINING_TELEGRAM: { label: 'Telegram', tone: 'telegram' },
   FETCHING_POSTS: { label: 'Telegram', tone: 'telegram' },
+  LINK_SCRAPER: { label: 'Link Scraper', tone: 'info' },
   CALLING_OLLAMA: { label: 'Ollama AI', tone: 'ollama' },
   DISCOVERED_CATEGORIES: { label: 'Success', tone: 'success' },
   EXTRACTION_QUEUED: { label: 'Pipeline', tone: 'info' },
@@ -13,6 +14,8 @@ const STAGE_META = {
   EXTRACTION_PROGRESS: { label: 'Ollama AI', tone: 'ollama' },
   JOB_SAVED: { label: 'Success', tone: 'success' },
   EXTRACTION_DONE: { label: 'Success', tone: 'success' },
+  EXTRACTION_STOP_REQUESTED: { label: 'Stop', tone: 'warn' },
+  EXTRACTION_STOPPED: { label: 'Stopped', tone: 'error' },
   ERROR: { label: 'Error', tone: 'error' },
 }
 
@@ -66,7 +69,8 @@ export default function ActivityConsole() {
                 entry.stage === 'CALLING_OLLAMA' ||
                 entry.stage === 'EXTRACTION_PROGRESS' ||
                 entry.stage === 'JOINING_TELEGRAM' ||
-                entry.stage === 'FETCHING_POSTS'
+                entry.stage === 'FETCHING_POSTS' ||
+                entry.stage === 'LINK_SCRAPER'
               return (
                 <li key={`${entry.ts}-${idx}`} className={`activity-row tone-${meta.tone}`}>
                   <span className="activity-time">{formatTime(entry.ts)}</span>

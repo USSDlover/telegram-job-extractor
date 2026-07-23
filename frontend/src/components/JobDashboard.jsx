@@ -8,6 +8,14 @@ const SORT_OPTIONS = [
   { value: 'title_asc', label: 'Job Title' },
 ]
 
+const DATE_PRESETS = [
+  { value: 'all_time', label: 'All Time' },
+  { value: 'today', label: 'Today' },
+  { value: 'this_week', label: 'This Week' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'custom', label: 'Custom' },
+]
+
 function formatDate(iso) {
   if (!iso) return '—'
   try {
@@ -45,6 +53,9 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [categories, setCategories] = useState([])
   const [category, setCategory] = useState('')
   const [sortBy, setSortBy] = useState('date_desc')
+  const [datePreset, setDatePreset] = useState('all_time')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -53,7 +64,13 @@ export default function JobDashboard({ refreshToken = 0 }) {
     setError('')
     try {
       const [jobsData, catsData] = await Promise.all([
-        fetchJobs(category || undefined, sortBy),
+        fetchJobs({
+          category: category || undefined,
+          sortBy,
+          preset: datePreset,
+          startDate: datePreset === 'custom' ? startDate || undefined : undefined,
+          endDate: datePreset === 'custom' ? endDate || undefined : undefined,
+        }),
         fetchCategories(),
       ])
       setJobs(jobsData.jobs || [])
@@ -67,7 +84,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
     } finally {
       setLoading(false)
     }
-  }, [category, sortBy])
+  }, [category, sortBy, datePreset, startDate, endDate])
 
   useEffect(() => {
     refreshAll()
@@ -125,12 +142,51 @@ export default function JobDashboard({ refreshToken = 0 }) {
         </div>
       </header>
 
+      <div className="date-filter-bar">
+        <span className="date-filter-label">Date</span>
+        <div className="preset-pills" role="group" aria-label="Date presets">
+          {DATE_PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              className={`preset-pill ${datePreset === p.value ? 'active' : ''}`}
+              onClick={() => setDatePreset(p.value)}
+              disabled={loading}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {datePreset === 'custom' && (
+          <div className="custom-range">
+            <label className="field inline">
+              <span>Start</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                disabled={loading}
+              />
+            </label>
+            <label className="field inline">
+              <span>End</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                disabled={loading}
+              />
+            </label>
+          </div>
+        )}
+      </div>
+
       {error && <p className="status err">{error}</p>}
       {loading && jobs.length === 0 && <p className="muted">Loading jobs…</p>}
 
       {!loading && visibleJobs.length === 0 && (
         <p className="muted empty">
-          No jobs yet. Run discovery and extraction from the control board.
+          No jobs match the current filters. Try another date range or run extraction.
         </p>
       )}
 

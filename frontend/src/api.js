@@ -23,24 +23,46 @@ export async function discoverChannel(channel) {
   return discoverChannels([channel])
 }
 
-export async function startExtraction(channels, selectedCategories, selectedTitles) {
+export async function startExtraction(
+  channels,
+  selectedCategories,
+  selectedTitles,
+  { datePreset = 'today', startDate, endDate } = {},
+) {
   const list = Array.isArray(channels) ? channels : [channels]
+  const body = {
+    channels: list,
+    selected_categories: selectedCategories,
+    selected_titles: selectedTitles,
+    date_preset: datePreset,
+  }
+  if (datePreset === 'custom') {
+    if (startDate) body.start_date = startDate
+    if (endDate) body.end_date = endDate
+  }
   const res = await fetch('/api/extract', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({
-      channels: list,
-      selected_categories: selectedCategories,
-      selected_titles: selectedTitles,
-    }),
+    body: JSON.stringify(body),
   })
   return parseResponse(res)
 }
 
-export async function fetchJobs(category, sortBy = 'date_desc') {
+export async function fetchJobs({
+  category,
+  sortBy = 'date_desc',
+  preset = 'all_time',
+  startDate,
+  endDate,
+} = {}) {
   const params = new URLSearchParams()
   if (category) params.set('category', category)
   if (sortBy) params.set('sort_by', sortBy)
+  if (preset) params.set('preset', preset)
+  if (preset === 'custom') {
+    if (startDate) params.set('start_date', startDate)
+    if (endDate) params.set('end_date', endDate)
+  }
   const qs = params.toString() ? `?${params.toString()}` : ''
   const res = await fetch(`/api/jobs${qs}`)
   return parseResponse(res)
@@ -48,5 +70,13 @@ export async function fetchJobs(category, sortBy = 'date_desc') {
 
 export async function fetchCategories() {
   const res = await fetch('/api/categories')
+  return parseResponse(res)
+}
+
+export async function stopExtraction() {
+  const res = await fetch('/api/stop-extraction', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+  })
   return parseResponse(res)
 }

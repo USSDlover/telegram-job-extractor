@@ -55,15 +55,10 @@ export function ActivityProvider({ children, onJobSaved, onDiscovered }) {
     if (
       stage === 'DISCOVERED_CATEGORIES' ||
       stage === 'EXTRACTION_DONE' ||
+      stage === 'EXTRACTION_STOPPED' ||
       stage === 'ERROR'
     ) {
-      // Keep busy briefly on discovery so UI can settle; extraction done clears
-      if (stage !== 'DISCOVERED_CATEGORIES') {
-        setPipelineBusy(false)
-      }
-      if (stage === 'DISCOVERED_CATEGORIES') {
-        setPipelineBusy(false)
-      }
+      setPipelineBusy(false)
     }
 
     if (stage === 'DISCOVERED_CATEGORIES') {
@@ -101,6 +96,7 @@ export function ActivityProvider({ children, onJobSaved, onDiscovered }) {
       'DISCOVER_STARTED',
       'JOINING_TELEGRAM',
       'FETCHING_POSTS',
+      'LINK_SCRAPER',
       'CALLING_OLLAMA',
       'DISCOVERED_CATEGORIES',
       'EXTRACTION_QUEUED',
@@ -108,6 +104,8 @@ export function ActivityProvider({ children, onJobSaved, onDiscovered }) {
       'EXTRACTION_PROGRESS',
       'JOB_SAVED',
       'EXTRACTION_DONE',
+      'EXTRACTION_STOP_REQUESTED',
+      'EXTRACTION_STOPPED',
       'ERROR',
     ]
     stages.forEach((name) => es.addEventListener(name, handlePayload))

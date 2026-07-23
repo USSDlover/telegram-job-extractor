@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import List, Sequence
+from datetime import datetime, timezone
+from typing import List, Optional, Sequence
 
 from telethon import TelegramClient
 from telethon.errors import ChannelInvalidError, ChannelPrivateError, UsernameInvalidError
@@ -14,9 +16,32 @@ from telethon.tl.types import Message
 from activity_log import broadcast_log
 from ai_extractor import discover_categories_from_samples, extract_job_data
 from config import settings
+from link_preview import enrich_message_with_link_metadata
 from storage import upsert_jobs
 
 logger = logging.getLogger(__name__)
+
+# Shared cancellation flag for the active extraction background task
+_stop_scraper_event = asyncio.Event()
+
+
+def reset_stop_flag() -> None:
+    """Clear stop signal before starting a new extraction run."""
+    _stop_scraper_event.clear()
+
+
+def request_stop_extraction() -> bool:
+    """
+    Signal the running scraper to halt.
+    Returns True if a stop was newly requested.
+    """
+    already = _stop_scraper_event.is_set()
+    _stop_scraper_event.set()
+    return not already
+
+
+def is_stop_requested() -> bool:
+    return _stop_scraper_event.is_set()
 
 
 def _normalize_channel(channel_username: str) -> str:
@@ -201,7 +226,9 @@ async def discover_channels_categories(channels: Sequence[str]) -> dict:
     if not all_samples and errors:
         raise ValueError("; ".join(errors))
 
-    result = await discover_categories_from_samples(all_samples)
+    result = await discover_categories_from_samples(
+        all_samples, channels=channel_list
+    )
     await broadcast_log(
         "DISCOVERED_CATEGORIES",
         f"AI returned {len(result.discovered_categories)} categories and "
@@ -256,6 +283,14 @@ def _matches_filters(
     return title_ok
 
 
+def _aware_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 async def _scrape_one_channel(
     client: TelegramClient,
     channel: str,
@@ -263,14 +298,26 @@ async def _scrape_one_channel(
     target_titles: List[str],
     channel_index: int,
     channel_total: int,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
 ) -> tuple[int, int]:
     total_limit = settings.scrape_limit
     saved = 0
     processed = 0
+    skipped_out_of_range = 0
+    start_date = _aware_utc(start_date)
+    end_date = _aware_utc(end_date)
+
+    range_label = "all available history (limit capped)"
+    if start_date or end_date:
+        start_s = start_date.date().isoformat() if start_date else "…"
+        end_s = end_date.date().isoformat() if end_date else "…"
+        range_label = f"{start_s} → {end_s}"
 
     await broadcast_log(
         "EXTRACTION_STARTED",
-        f"Processing channel {channel_index}/{channel_total}: {channel}...",
+        f"Processing channel {channel_index}/{channel_total}: {channel} "
+        f"(posts between {range_label})...",
         {
             "channel": channel,
             "index": channel_index,
@@ -278,20 +325,59 @@ async def _scrape_one_channel(
             "selected_categories": target_categories,
             "selected_titles": target_titles,
             "limit": total_limit,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None,
         },
     )
 
     entity = await _ensure_joined(client, channel)
     await broadcast_log(
         "FETCHING_POSTS",
-        f"Iterating up to {total_limit} messages from {channel}...",
+        f"[{channel}] Fetching posts between {range_label}...",
         {"channel": channel, "limit": total_limit},
     )
 
     async for msg in client.iter_messages(entity, limit=total_limit):
+        if is_stop_requested():
+            await broadcast_log(
+                "EXTRACTION_STOPPED",
+                f"[{channel}] Stop signal received. Halting extraction...",
+                {"channel": channel, "processed": processed, "saved": saved},
+            )
+            break
+
+        if not msg.date:
+            continue
+        msg_dt = _aware_utc(msg.date)
+        if msg_dt is None:
+            continue
+
+        # Newest-first iteration: stop once we pass the lower bound
+        if start_date and msg_dt < start_date:
+            await broadcast_log(
+                "FETCHING_POSTS",
+                f"[{channel}] Reached posts older than {start_date.date().isoformat()}. "
+                "Stopping scraper for channel.",
+                {"channel": channel, "start_date": start_date.isoformat()},
+            )
+            break
+
+        if end_date and msg_dt > end_date:
+            skipped_out_of_range += 1
+            continue
+
         text = _message_text(msg)
         if not text:
             continue
+
+        if is_stop_requested():
+            await broadcast_log(
+                "EXTRACTION_STOPPED",
+                f"[{channel}] Stop signal received before Ollama call. Halting...",
+                {"channel": channel, "message_id": msg.id},
+            )
+            break
+
         processed += 1
         await broadcast_log(
             "EXTRACTION_PROGRESS",
@@ -306,7 +392,22 @@ async def _scrape_one_channel(
             },
         )
         try:
-            extracted = await extract_job_data(text)
+            enriched_text, link_meta = await enrich_message_with_link_metadata(text)
+            if is_stop_requested():
+                await broadcast_log(
+                    "EXTRACTION_STOPPED",
+                    f"[{channel}] Stop signal received after link preview. Halting...",
+                    {"channel": channel},
+                )
+                break
+            if link_meta:
+                await broadcast_log(
+                    "LINK_SCRAPER",
+                    f"[{channel}] Enriched message {msg.id} with "
+                    f"{len([m for m in link_meta if m.get('ok')])} link preview(s).",
+                    {"message_id": msg.id, "channel": channel},
+                )
+            extracted = await extract_job_data(enriched_text)
         except Exception as exc:
             logger.warning("Skipping message %s: %s", msg.id, exc)
             await broadcast_log(
@@ -325,7 +426,7 @@ async def _scrape_one_channel(
         ):
             continue
 
-        date_iso = msg.date.isoformat() if msg.date else None
+        date_iso = msg_dt.isoformat()
         record = {
             "id": f"{channel.lstrip('@')}_{msg.id}",
             "channel": channel,
@@ -346,15 +447,29 @@ async def _scrape_one_channel(
             },
         )
 
+    stopped = is_stop_requested()
     await broadcast_log(
-        "EXTRACTION_DONE",
-        f"Finished {channel}: saved {saved} job(s); scanned {processed} text posts.",
+        "EXTRACTION_STOPPED" if stopped else "EXTRACTION_DONE",
+        (
+            f"[{channel}] Extraction pipeline stopped. Saved {saved} job(s); "
+            f"scanned {processed} text posts."
+            if stopped
+            else f"Finished {channel}: saved {saved} job(s); scanned {processed} text posts"
+            + (
+                f"; skipped {skipped_out_of_range} newer than end date"
+                if skipped_out_of_range
+                else ""
+            )
+            + "."
+        ),
         {
             "channel": channel,
             "saved": saved,
             "processed": processed,
+            "skipped_out_of_range": skipped_out_of_range,
             "index": channel_index,
             "total": channel_total,
+            "stopped": stopped,
         },
     )
     return saved, processed
@@ -364,21 +479,37 @@ async def scrape_and_process_channels(
     channels: Sequence[str],
     target_categories: List[str],
     target_titles: List[str],
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
 ) -> None:
     """Background task: extract jobs from multiple channels sequentially."""
     channel_list = normalize_channels(channels)
     total_saved = 0
     total_processed = 0
+    start_date = _aware_utc(start_date)
+    end_date = _aware_utc(end_date)
+    reset_stop_flag()
 
     await broadcast_log(
         "EXTRACTION_QUEUED",
         f"Multi-channel extraction starting for {len(channel_list)} channel(s).",
-        {"channels": channel_list},
+        {
+            "channels": channel_list,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None,
+        },
     )
 
     try:
         async with telegram_client() as client:
             for idx, channel in enumerate(channel_list, start=1):
+                if is_stop_requested():
+                    await broadcast_log(
+                        "EXTRACTION_STOPPED",
+                        "Stop signal received. Skipping remaining channels.",
+                        {"channels": channel_list, "stopped_before": channel},
+                    )
+                    break
                 try:
                     saved, processed = await _scrape_one_channel(
                         client,
@@ -387,6 +518,8 @@ async def scrape_and_process_channels(
                         target_titles,
                         idx,
                         len(channel_list),
+                        start_date=start_date,
+                        end_date=end_date,
                     )
                     total_saved += saved
                     total_processed += processed
@@ -397,15 +530,24 @@ async def scrape_and_process_channels(
                         f"Extraction failed for {channel}: {exc}",
                         {"channel": channel},
                     )
+                if is_stop_requested():
+                    break
 
+        stopped = is_stop_requested()
         await broadcast_log(
-            "EXTRACTION_DONE",
-            f"All channels finished. Saved {total_saved} job(s) across "
-            f"{len(channel_list)} channel(s); scanned {total_processed} text posts.",
+            "EXTRACTION_STOPPED" if stopped else "EXTRACTION_DONE",
+            (
+                f"Extraction pipeline stopped. Saved {total_saved} job(s) across "
+                f"{len(channel_list)} channel(s); scanned {total_processed} text posts."
+                if stopped
+                else f"All channels finished. Saved {total_saved} job(s) across "
+                f"{len(channel_list)} channel(s); scanned {total_processed} text posts."
+            ),
             {
                 "channels": channel_list,
                 "saved": total_saved,
                 "processed": total_processed,
+                "stopped": stopped,
             },
         )
     except Exception as exc:
@@ -415,14 +557,23 @@ async def scrape_and_process_channels(
             f"Multi-channel extraction failed: {exc}",
             {"channels": channel_list},
         )
+    finally:
+        # Leave the flag set until the next run resets it, so late checks stay consistent
+        pass
 
 
 async def scrape_and_process_channel(
     channel_username: str,
     target_categories: List[str],
     target_titles: List[str],
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
 ) -> None:
     """Backward-compatible single-channel extraction."""
     await scrape_and_process_channels(
-        [channel_username], target_categories, target_titles
+        [channel_username],
+        target_categories,
+        target_titles,
+        start_date=start_date,
+        end_date=end_date,
     )

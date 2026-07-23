@@ -1,1 +1,45 @@
-﻿[]
+[
+  {
+    "id": "jobs_finding_3977",
+    "channel": "@jobs_finding",
+    "message_id": 3977,
+    "date": "2026-07-23T14:00:06+00:00",
+    "is_job_posting": true,
+    "title": "Software Engineer II",
+    "category": "Software Engineering",
+    "company": null,
+    "apply_links": [
+      "🔗 Apply"
+    ],
+    "translated_summary": "Software Engineer II position available in the Netherlands. No experience required. Skills: React, Vue, PHP, MySQL, Laravel, MariaDB, AI, C, Blade, SaaS, AWS, Docker, Cloud."
+  },
+  {
+    "id": "jobs_finding_3975",
+    "channel": "@jobs_finding",
+    "message_id": 3975,
+    "date": "2026-07-23T08:00:06+00:00",
+    "is_job_posting": true,
+    "title": "OutSystems Developer",
+    "category": "Software Development",
+    "company": null,
+    "apply_links": [
+      "🔗 Apply"
+    ],
+    "translated_summary": "Entry-level OutSystems Developer position available in the CAPITAL DISTRICT. Requires skills in JavaScript, CSS, MySQL, PostgreSQL, C, server-side development, UI design, cloud technologies, and SQL."
+  },
+  {
+    "id": "myjobamweb_10579",
+    "channel": "@myjobamweb",
+    "message_id": 10579,
+    "date": "2026-07-23T17:08:09+00:00",
+    "is_job_posting": true,
+    "title": "Driver - Courier",
+    "category": "Delivery Driver",
+    "company": "Standard Group SPC",
+    "apply_links": [
+      "https://www.myjob.am/Announcement.aspx?jobId=92298"
+    ],
+    "translated_summary": "Standard Group SPC is looking for a Driver - Courier. The company offers a dynamic work environment in the field of Logistics, Transportation and Security. The position requires a driver with experience in delivering goods.",
+    "original_language": "Armenian"
+  }
+]

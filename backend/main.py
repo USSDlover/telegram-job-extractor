@@ -17,9 +17,16 @@ from config import settings
 from scraper import (
     discover_channels_categories,
     normalize_channels,
+    request_stop_extraction,
+    reset_stop_flag,
     scrape_and_process_channels,
 )
-from storage import get_distinct_categories, get_jobs_sorted
+from storage import (
+    get_distinct_categories,
+    get_jobs_sorted,
+    read_debug_samples,
+    resolve_date_bounds,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,6 +56,12 @@ class ExtractRequest(BaseModel):
     channel: Optional[str] = None
     selected_categories: List[str] = Field(default_factory=list)
     selected_titles: List[str] = Field(default_factory=list)
+    date_preset: Optional[str] = Field(
+        default="today",
+        description="today | this_week | this_month | all_time | custom",
+    )
+    start_date: Optional[str] = Field(default=None, description="YYYY-MM-DD")
+    end_date: Optional[str] = Field(default=None, description="YYYY-MM-DD")
 
     @model_validator(mode="after")
     def require_channels(self) -> "ExtractRequest":
@@ -101,13 +114,29 @@ async def discover(body: DiscoverRequest):
 @app.post("/api/extract", status_code=202)
 async def extract(body: ExtractRequest, background_tasks: BackgroundTasks):
     channels = normalize_channels(body.channels, body.channel)
+    start_dt, end_dt = resolve_date_bounds(
+        body.date_preset,
+        body.start_date,
+        body.end_date,
+    )
+    reset_stop_flag()
     await broadcast_log(
         "EXTRACTION_QUEUED",
-        f"Extraction queued for {len(channels)} channel(s).",
+        f"Extraction queued for {len(channels)} channel(s)"
+        + (
+            f" between {start_dt.date().isoformat() if start_dt else '…'} "
+            f"and {end_dt.date().isoformat() if end_dt else '…'}"
+            if start_dt or end_dt
+            else " (all time)"
+        )
+        + ".",
         {
             "channels": channels,
             "selected_categories": body.selected_categories,
             "selected_titles": body.selected_titles,
+            "date_preset": body.date_preset,
+            "start_date": start_dt.isoformat() if start_dt else None,
+            "end_date": end_dt.isoformat() if end_dt else None,
         },
     )
     background_tasks.add_task(
@@ -115,11 +144,31 @@ async def extract(body: ExtractRequest, background_tasks: BackgroundTasks):
         channels,
         body.selected_categories,
         body.selected_titles,
+        start_dt,
+        end_dt,
     )
     return {
         "status": "started",
         "channels": channels,
+        "date_preset": body.date_preset or "today",
+        "start_date": start_dt.isoformat() if start_dt else None,
+        "end_date": end_dt.isoformat() if end_dt else None,
         "message": f"Extraction pipeline started for {len(channels)} channel(s)",
+    }
+
+
+@app.post("/api/stop-extraction")
+async def stop_extraction():
+    """Request cooperative cancellation of the active extraction pipeline."""
+    newly = request_stop_extraction()
+    await broadcast_log(
+        "EXTRACTION_STOP_REQUESTED",
+        "User requested task termination. Stop signal received. Halting extraction...",
+        {"newly_requested": newly},
+    )
+    return {
+        "status": "stopping" if newly else "already_stopping",
+        "message": "Stop signal sent to scraper",
     }
 
 
@@ -127,15 +176,41 @@ async def extract(body: ExtractRequest, background_tasks: BackgroundTasks):
 async def list_jobs(
     category: Optional[str] = Query(default=None),
     sort_by: str = Query(default="date_desc"),
+    preset: Optional[str] = Query(
+        default="all_time",
+        description="today | this_week | this_month | all_time | custom",
+    ),
+    start_date: Optional[str] = Query(default=None, description="YYYY-MM-DD"),
+    end_date: Optional[str] = Query(default=None, description="YYYY-MM-DD"),
 ):
-    jobs = await get_jobs_sorted(category=category, sort_by=sort_by)
-    return {"jobs": jobs, "total": len(jobs), "sort_by": sort_by}
+    jobs = await get_jobs_sorted(
+        category=category,
+        sort_by=sort_by,
+        preset=preset,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    return {
+        "jobs": jobs,
+        "total": len(jobs),
+        "sort_by": sort_by,
+        "preset": preset or "all_time",
+        "start_date": start_date,
+        "end_date": end_date,
+    }
 
 
 @app.get("/api/categories")
 async def list_categories():
     categories = await get_distinct_categories()
     return {"categories": categories}
+
+
+@app.get("/api/debug/samples")
+async def debug_samples(limit: int = Query(default=20, ge=1, le=50)):
+    """Inspect recent discovery LLM inputs/outputs saved to debug_samples.json."""
+    samples = await read_debug_samples(limit=limit)
+    return {"samples": samples, "total": len(samples)}
 
 
 @app.get("/api/stream-logs")
