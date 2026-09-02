@@ -1,845 +1,597 @@
 [
   {
-    "id": "myjobamweb_10579",
-    "channel": "@myjobamweb",
-    "message_id": 10579,
-    "date": "2026-07-23T17:08:09+00:00",
-    "telegram_url": "https://t.me/myjobamweb/10579",
+    "id": "job_am_53227",
+    "channel": "@job_am",
+    "message_id": 53227,
+    "date": "2026-09-02T16:00:03+00:00",
+    "telegram_url": "https://t.me/job_am/53227",
+    "is_job_posting": true,
+    "title": "Accountant / Auditor",
+    "category": "Finance",
+    "company": "Mon Ami LLC",
+    "apply_links": [
+      "https://job.am/hy/job/hashvetar-hashvapah-75434?utm_source=telegram",
+      "https://job.am/hy/job/hashvetar-hashvapah-75434"
+    ],
+    "translated_summary": "Mon Ami LLC is looking for new team members to fill the Accountant / Auditor position. Responsibilities include: Introducing accounting software, preparing accounting documents and managing document circulation. Requirements: ...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53226",
+    "channel": "@job_am",
+    "message_id": 53226,
+    "date": "2026-09-02T16:00:02+00:00",
+    "telegram_url": "https://t.me/job_am/53226",
+    "is_job_posting": true,
+    "title": "International Sales Specialist",
+    "category": "Sales",
+    "company": "IN TRUST LLC",
+    "apply_links": [
+      "https://job.am/hy/job/mijazgayin-vacharqi-masnaget-78650?utm_source=telegram",
+      "https://job.am/hy/job/mijazgayin-vacharqi-masnaget-78650"
+    ],
+    "translated_summary": "We are looking for proactive, energetic and goal-oriented specialists to join our team and work in the direction of commercial auto insurance in the US market. If you have good English, high communication skills, and are quick to learn, then we encourage you to apply!",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53225",
+    "channel": "@job_am",
+    "message_id": 53225,
+    "date": "2026-09-02T13:00:21+00:00",
+    "telegram_url": "https://t.me/job_am/53225",
     "is_job_posting": true,
     "title": "Driver - Courier",
-    "category": "Transportation & Logistics",
-    "company": "Standard Group SP",
+    "category": "Delivery & Transportation",
+    "company": "Robert Piralloff",
     "apply_links": [
-      "https://www.myjob.am/Announcement.aspx?jobId=92298"
+      "https://job.am/hy/job/varord-araqich-78649?utm_source=telegram",
+      "https://job.am/hy/job/varord-araqich-78649"
     ],
-    "translated_summary": "Standard Group SP is looking for a Driver - Courier. Responsibilities include: receiving goods from the warehouse, safely transporting and delivering goods (within Yerevan and regions of Armenia), and proper use of the company's vehicle. Requirements: Driving license category B (mechanical), at least 3 years of driving experience, high sense of responsibility and accuracy, communication skills. Interested parties can send their CV to hr@standardoil.am, indicating the position title in the subject line, or call +374 41114888. For more information about the company's activities, please visit our official websites: https://parts.standardoil.am/ and https://standardoil.am/. Please indicate that you learned about this job from MyJob.am in your application.",
+    "translated_summary": "Piralyan LLC is hiring experienced driver-couriers. Responsibilities: Receiving goods from the warehouse, accounting, placing goods in the car, Accurate and fast delivery of goods according to addresses, Ensuring the safe transportation of goods, ...",
     "original_language": "Armenian"
   },
   {
-    "id": "jobs_finding_3979",
-    "channel": "@jobs_finding",
-    "message_id": 3979,
-    "date": "2026-07-23T20:00:08+00:00",
-    "telegram_url": "https://t.me/jobs_finding/3979",
-    "is_job_posting": true,
-    "title": "Senior Software Engineer - AI-Native Procurement Platform",
-    "category": "Software Engineering",
-    "company": "omnea",
-    "apply_links": [
-      "https://jaabz.com/jobs/253508-software-engineer?tlg=jobs_finding"
-    ],
-    "translated_summary": "Senior Software Engineer - AI-Native Procurement Platform at omnea - United Kingdom. Unlock Details Share Job Description Our MissionAt Omnea, we’re reinventing how enterprise businesses operate, starting with the most painful parts: procurement – where a single purchase can drag on for months, trigger 50+ emails, and pull in Finance, Legal, Security, and IT just to get something approved.We’ve raised $75M from Khosla Ventures, Insight Partners, and Accel to change that. Our AI-native platform connects every person, step, and system so...",
-    "original_language": null
-  },
-  {
-    "id": "jobs_finding_3977",
-    "channel": "@jobs_finding",
-    "message_id": 3977,
-    "date": "2026-07-23T14:00:06+00:00",
-    "telegram_url": "https://t.me/jobs_finding/3977",
-    "is_job_posting": true,
-    "title": "Software Engineer II - Backend (Laravel/PHP)",
-    "category": "Software Engineering",
-    "company": "Diligent",
-    "apply_links": [
-      "https://jaabz.com/jobs/253049-software-engineer-ii?tlg=jobs_finding"
-    ],
-    "translated_summary": "Design, build, and maintain backend features and RESTful APIs in Laravel within a modern TALL stack environment. Own well-defined stories from implementation through deployment, monitoring, and iteration, ensuring performance and reliability. Mentor junior engineers, contribute to architectural discussions, and use AI tools thoughtfully to accelerate development.",
-    "original_language": null
-  },
-  {
-    "id": "jobs_finding_3976",
-    "channel": "@jobs_finding",
-    "message_id": 3976,
-    "date": "2026-07-23T11:00:07+00:00",
-    "telegram_url": "https://t.me/jobs_finding/3976",
-    "is_job_posting": true,
-    "title": "Senior Firmware Engineer",
-    "category": "Software Engineering",
-    "company": "cortech talent solutions ltd",
-    "apply_links": [
-      "https://jaabz.com/jobs/253070-firmware-design-engineer?tlg=jobs_finding"
-    ],
-    "translated_summary": "Apply for Senior Firmware Engineer - Audio Enhancement Project at cortech talent solutions ltd. Visa sponsorship available. Apply now!",
-    "original_language": null
-  },
-  {
-    "id": "jobs_finding_3975",
-    "channel": "@jobs_finding",
-    "message_id": 3975,
-    "date": "2026-07-23T08:00:06+00:00",
-    "telegram_url": "https://t.me/jobs_finding/3975",
-    "is_job_posting": true,
-    "title": "Intermediate OutSystems Developer (ODC)",
-    "category": "Software Engineering",
-    "company": "techjays",
-    "apply_links": [
-      "https://jaabz.com/jobs/253045-outsystems-developer?tlg=jobs_finding"
-    ],
-    "translated_summary": "Apply for Intermediate OutSystems Developer (ODC) at techjays. Visa sponsorship & relocation package available. Apply now!",
-    "original_language": null
-  },
-  {
-    "id": "jobs_finding_3974",
-    "channel": "@jobs_finding",
-    "message_id": 3974,
-    "date": "2026-07-23T05:00:08+00:00",
-    "telegram_url": "https://t.me/jobs_finding/3974",
-    "is_job_posting": true,
-    "title": "Senior Operations Engineer (Azure & CI/CD)",
-    "category": "Software Engineering",
-    "company": "A2G Consulting BV (A2G Technologies)",
-    "apply_links": [
-      "https://jaabz.com/jobs/253077-senior-operations-engineer-azure-cicd?tlg=jobs_finding"
-    ],
-    "translated_summary": "Join our commercial banking technology team in Amsterdam as a Senior Operations Engineer. Ensure high availability, reliability, and performance of internet-facing commercial banking systems. Implement automation for operational processes, deployments, and testing. Key Highlights Ensure high availability, reliability, and performance of internet-facing commercial banking systems Implement automation for operational processes, deployments, and testing Manage Azure deployments and support cloud infrastructure operations Key Responsibilities Ensure high availability, reliability, and performance of internet-facing commercial banking systems Monitor, support, and maintain all Order Manager environments Implement and enhance automation for operational processes, deployments, and testing Manage Azure deployments and support cloud infrastructure operations Participate in code reviews and repository management following best practices Build, maintain, and optimize CI/CD pipelines Troubleshoot production issues and drive root cause analysis and permanent fixes Collaborate with cross-functional teams in an Agile environment Contribute to continuous improvement initiatives for operational efficiency and system reliability Effectively prioritize tasks while managing multiple projects and deadlines Technical Skills Required Python Azure CI/CD pipelines Benefits & Perks 20 days of holiday per year Encourage Personal Development - Certification (Certification Charges reimbursed) Income Tax Return Filing Visa Sponsorship for Candidate & Dependants Possibility of bonus Job Description Contract: 12 months (subject to extension). Location: Amsterdam, Netherlands. Salary: Not a constraint for the right candidate! Experience: 6-8 years. Hybrid: 2 days Work from Home 3 days Work from Office Your Profile & DNA: We are looking for an experienced Senior Operations Engineer to join our commercial banking technology team.",
-    "original_language": null
-  },
-  {
-    "id": "hrdrone_3737",
-    "channel": "@hrdrone",
-    "message_id": 3737,
-    "date": "2026-07-23T08:40:00+00:00",
-    "telegram_url": "https://t.me/hrdrone/3737",
-    "is_job_posting": true,
-    "title": "Solar Engineer",
-    "category": "Engineering",
-    "company": "SOLARA",
-    "apply_links": [
-      "https://hrdrone.am/hy/jobs/solara/FkiOpL-inzhener-nakhagtsogh"
-    ],
-    "translated_summary": "The company is hiring solar engineers for the technical design and documentation of photovoltaic (PV) systems.\n\n#ProjectProductManagement",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51766",
+    "id": "job_am_53224",
     "channel": "@job_am",
-    "message_id": 51766,
-    "date": "2026-07-23T16:00:15+00:00",
-    "telegram_url": "https://t.me/job_am/51766",
+    "message_id": 53224,
+    "date": "2026-09-02T13:00:16+00:00",
+    "telegram_url": "https://t.me/job_am/53224",
     "is_job_posting": true,
-    "title": "HVAC Engineer",
-    "category": "Engineering",
-    "company": "Team Made Solutions",
+    "title": "Freelance Recruiter",
+    "category": "Recruitment",
+    "company": "Accept™ | Smart BPS",
     "apply_links": [
-      "https://job.am/hy/job/jerucman-ev-odapoxutyan-hamakargeri-naxagcogh-hvac-engineer-77061?utm_source=telegram"
+      "https://job.am/hy/job/freelance-recruiter-78643?utm_source=telegram",
+      "https://job.am/hy/job/freelance-recruiter-78643"
     ],
-    "translated_summary": "Team Made Solutions is hiring an HVAC Engineer. Responsibilities include designing and developing HVAC systems, creating technical drawings and design documents, and collaborating with other engineers.",
+    "translated_summary": "Accept company is expanding the «Impact» program and is looking for motivated Freelance Recruiters from any part of the world. The role is based solely on results (commission-based) without a fixed schedule.",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51762",
+    "id": "job_am_53223",
     "channel": "@job_am",
-    "message_id": 51762,
-    "date": "2026-07-23T16:00:08+00:00",
-    "telegram_url": "https://t.me/job_am/51762",
+    "message_id": 53223,
+    "date": "2026-09-02T13:00:12+00:00",
+    "telegram_url": "https://t.me/job_am/53223",
     "is_job_posting": true,
-    "title": "Carpenter",
-    "category": "Construction & Trades",
-    "company": "Aramyants Medical Center",
+    "title": "Marketing Specialist",
+    "category": "Marketing",
+    "company": "Goldshyn",
     "apply_links": [
-      "https://job.am/hy/job/ataghdzagorc-plotnik-77058?utm_source=telegram"
+      "https://job.am/hy/job/marqetingi-masnaget-78644?utm_source=telegram",
+      "https://job.am/hy/job/marqetingi-masnaget-78644"
     ],
-    "translated_summary": "The hospital needs a carpenter. Responsibilities: Refurbish patient rooms, office furniture. Arrange and replace door, window seals, handles, etc. Requirements: Middle vocational education 1-3 years of experience...",
+    "translated_summary": "Goldshyn company is looking for a Marketing Specialist with relevant work experience. Responsibilities include regular study of the relevant field, monitoring the company's position in the market, brand promotion and public awareness.",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51761",
+    "id": "job_am_53222",
     "channel": "@job_am",
-    "message_id": 51761,
-    "date": "2026-07-23T16:00:07+00:00",
-    "telegram_url": "https://t.me/job_am/51761",
+    "message_id": 53222,
+    "date": "2026-09-02T13:00:10+00:00",
+    "telegram_url": "https://t.me/job_am/53222",
     "is_job_posting": true,
-    "title": "Electrician",
-    "category": "Construction & Trades",
-    "company": "Aramyants Medical Center",
+    "title": "Cashier - Accountant",
+    "category": "Retail & Sales",
+    "company": "RIEKER",
     "apply_links": [
-      "https://job.am/hy/job/elektrik-36235?utm_source=telegram"
+      "https://job.am/hy/job/spasarkogh-gandzapah-74447?utm_source=telegram",
+      "https://job.am/hy/job/spasarkogh-gandzapah-74447"
     ],
-    "translated_summary": "Aramyants Medical Center is looking for an electrician. Responsibilities include repairing, installing, replacing and dismantling electrical equipment and testing their operation...",
+    "translated_summary": "RIEKER shoe store is hiring a cashier-accountant. Responsibilities include performing sales transactions with POS terminals, working with cash, knowledge of MS Office, good customer service, and more.",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51758",
+    "id": "job_am_53221",
     "channel": "@job_am",
-    "message_id": 51758,
-    "date": "2026-07-23T13:00:29+00:00",
-    "telegram_url": "https://t.me/job_am/51758",
+    "message_id": 53221,
+    "date": "2026-09-02T13:00:09+00:00",
+    "telegram_url": "https://t.me/job_am/53221",
     "is_job_posting": true,
-    "title": "Restaurant Manager",
+    "title": "Fitter (Mechanic)",
+    "category": "Manufacturing",
+    "company": "Araks Poultry Factory",
+    "apply_links": [
+      "https://job.am/hy/job/pakanagorcner-slesar-78642?utm_source=telegram",
+      "https://job.am/hy/job/pakanagorcner-slesar-78642"
+    ],
+    "translated_summary": "The company is hiring fitters to work in poultry houses. Duties include inspecting poultry houses, checking regulations, inspecting pipelines, ventilation, lighting, and performing planned tasks and assignments.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53220",
+    "channel": "@job_am",
+    "message_id": 53220,
+    "date": "2026-09-02T13:00:09+00:00",
+    "telegram_url": "https://t.me/job_am/53220",
+    "is_job_posting": true,
+    "title": "Cashier - Operator",
+    "category": "Retail & Sales",
+    "company": "ART Petrol",
+    "apply_links": [
+      "https://job.am/hy/job/gandzapah-operator-72438?utm_source=telegram",
+      "https://job.am/hy/job/gandzapah-operator-72438"
+    ],
+    "translated_summary": "ART Petrol company is inviting to work a sales cashier - operator at the gas station shop in Dilijan branch. Responsibilities: Serve customers, carry out sales of goods, perform cash transactions...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53219",
+    "channel": "@job_am",
+    "message_id": 53219,
+    "date": "2026-09-02T13:00:08+00:00",
+    "telegram_url": "https://t.me/job_am/53219",
+    "is_job_posting": true,
+    "title": "Fuel Station Attendant",
+    "category": "Energy & Utilities",
+    "company": "ART PETROL LLC",
+    "apply_links": [
+      "https://job.am/hy/job/benzalcakayani-licqavorogh-78637?utm_source=telegram",
+      "https://job.am/hy/job/benzalcakayani-licqavorogh-78637"
+    ],
+    "translated_summary": "ART PETROL LLC is looking for a fuel station attendant in Dilijan. Job responsibilities include: Customer service and fast service, refueling vehicles, keeping the workplace clean and organized...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53218",
+    "channel": "@job_am",
+    "message_id": 53218,
+    "date": "2026-09-02T13:00:05+00:00",
+    "telegram_url": "https://t.me/job_am/53218",
+    "is_job_posting": true,
+    "title": "Accountant - Operator",
+    "category": "Finance",
+    "company": "PENOTEX LLC",
+    "apply_links": [
+      "https://job.am/hy/job/hashvetar-operator-78641?utm_source=telegram",
+      "https://job.am/hy/job/hashvetar-operator-78641"
+    ],
+    "translated_summary": "Penotex company is looking for an Accountant-Operator who will be responsible for processing orders, inventory accounting, and sales formatting processes. Responsibilities: Develop and format orders, 1C system...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53217",
+    "channel": "@job_am",
+    "message_id": 53217,
+    "date": "2026-09-02T13:00:04+00:00",
+    "telegram_url": "https://t.me/job_am/53217",
+    "is_job_posting": true,
+    "title": "Warehouse Keeper",
+    "category": "Logistics & Supply Chain",
+    "company": "Gulf Armenia",
+    "apply_links": [
+      "https://job.am/hy/job/pahestapet-78640?utm_source=telegram",
+      "https://job.am/hy/job/pahestapet-78640"
+    ],
+    "translated_summary": "The Warehouse Keeper is responsible for the reception, accounting, storage, and distribution of goods, materials, and other material assets in the organization's warehouse. Duties Include: Entering all material assets Providing...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53216",
+    "channel": "@job_am",
+    "message_id": 53216,
+    "date": "2026-09-02T13:00:04+00:00",
+    "telegram_url": "https://t.me/job_am/53216",
+    "is_job_posting": true,
+    "title": "Hotel Administrator",
     "category": "Hospitality & Food Service",
-    "company": "Gotcha.am",
+    "company": "HOME GROUP",
     "apply_links": [
-      "https://job.am/hy/job/srahi-menejer-77051?utm_source=telegram"
+      "https://job.am/hy/job/hyuranoci-administrator-78635?utm_source=telegram",
+      "https://job.am/hy/job/hyuranoci-administrator-78635"
     ],
-    "translated_summary": "In 2020, when gotcha opened its first conceptual boba bar, it breathed new life into the beverage culture in Armenia. And gotcha is much more than just drinks. It's already a lifestyle that combines high quality, positivity...",
+    "translated_summary": "A newly opened boutique hotel is looking for a responsible, communicative and skilled Administrator in the field of guest service. The Administrator is responsible for the reception and service of guests, the management of bookings and the daily operation of the hotel...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51755",
+    "id": "job_am_53215",
     "channel": "@job_am",
-    "message_id": 51755,
-    "date": "2026-07-23T13:00:23+00:00",
-    "telegram_url": "https://t.me/job_am/51755",
+    "message_id": 53215,
+    "date": "2026-09-02T13:00:03+00:00",
+    "telegram_url": "https://t.me/job_am/53215",
+    "is_job_posting": true,
+    "title": "Sales Specialist",
+    "category": "Sales",
+    "company": "Shoror",
+    "apply_links": [
+      "https://job.am/hy/job/vacharqi-masnaget-78639?utm_source=telegram",
+      "https://job.am/hy/job/vacharqi-masnaget-78639"
+    ],
+    "translated_summary": "Shoror children's store-cafe needs a long-term employee. The store is designed for expectant mothers, newborns, and young children up to 3 years old - clothing, furniture, care items and more. Responsibilities: Consulting and sales of goods...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53214",
+    "channel": "@job_am",
+    "message_id": 53214,
+    "date": "2026-09-02T13:00:02+00:00",
+    "telegram_url": "https://t.me/job_am/53214",
+    "is_job_posting": true,
+    "title": "Expeditor - Warehouse Assistant",
+    "category": "Logistics & Supply Chain",
+    "company": "Richter-Lambron CO LTD",
+    "apply_links": [
+      "https://job.am/hy/job/eqspeditor-pahestapeti-ognakan-78636?utm_source=telegram",
+      "https://job.am/hy/job/eqspeditor-pahestapeti-ognakan-78636"
+    ],
+    "translated_summary": "The company needs an expeditor - warehouse assistant. Responsibilities: Help receive and sort goods, Participate in inventory twice a month, Participate in warehouse-related work (transportation, product...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53213",
+    "channel": "@job_am",
+    "message_id": 53213,
+    "date": "2026-09-02T10:01:07+00:00",
+    "telegram_url": "https://t.me/job_am/53213",
+    "is_job_posting": true,
+    "title": "Promoter",
+    "category": "Sales",
+    "company": "Armenia Wine Factory LLC",
+    "apply_links": [
+      "https://job.am/hy/job/promoter-78634?utm_source=telegram",
+      "https://job.am/hy/job/promoter-78634"
+    ],
+    "translated_summary": "Armenia Wine Factory is looking for a Promoter for cooperation. Responsibilities: Present the company's products to customers in sales outlets, Answer customer questions, Encourage sales. Advantages of work...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53212",
+    "channel": "@job_am",
+    "message_id": 53212,
+    "date": "2026-09-02T10:00:33+00:00",
+    "telegram_url": "https://t.me/job_am/53212",
+    "is_job_posting": true,
+    "title": "Data Entry Specialist",
+    "category": "Data Entry & Administration",
+    "company": "ELMARKET LLC",
+    "apply_links": [
+      "https://job.am/hy/job/tvyalneri-mutqagrman-masnaget-78628?utm_source=telegram",
+      "https://job.am/hy/job/tvyalneri-mutqagrman-masnaget-78628"
+    ],
+    "translated_summary": "Eldorado Company is hiring a \"Data Entry Specialist\" to join the team. Responsibilities: Collecting product data (name, description, images, prices) from suppliers and internal teams, Data entry into the system, Updating product information, Maintaining data accuracy and integrity.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53211",
+    "channel": "@job_am",
+    "message_id": 53211,
+    "date": "2026-09-02T10:00:32+00:00",
+    "telegram_url": "https://t.me/job_am/53211",
+    "is_job_posting": true,
+    "title": "Market Development Manager",
+    "category": "Sales",
+    "company": "UNION",
+    "apply_links": [
+      "https://job.am/hy/job/shukayi-zargacman-patasxanatu-77322?utm_source=telegram",
+      "https://job.am/hy/job/shukayi-zargacman-patasxanatu-77322"
+    ],
+    "translated_summary": "UNION LLC is hiring a Market Development Manager for its commercial team. Responsibilities include visiting retailers and stores to present the company's products and collect orders.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53210",
+    "channel": "@job_am",
+    "message_id": 53210,
+    "date": "2026-09-02T10:00:32+00:00",
+    "telegram_url": "https://t.me/job_am/53210",
+    "is_job_posting": true,
+    "title": "Furniture Maker / Furniture Production Staff",
+    "category": "Manufacturing",
+    "company": "DUSON",
+    "apply_links": [
+      "https://job.am/hy/job/kahuyqagorc-kahuyqi-artadramasi-ashxatakic-78624?utm_source=telegram",
+      "https://job.am/hy/job/kahuyqagorc-kahuyqi-artadramasi-ashxatakic-78624"
+    ],
+    "translated_summary": "Furniture makers and furniture craftsmen are required in the production department, both experienced and novice (we train). Workplace: Masis, H. Vardanyan 42 Responsibilities: Work in the furniture production department. Requirements: Armenian language proficiency...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53209",
+    "channel": "@job_am",
+    "message_id": 53209,
+    "date": "2026-09-02T10:00:31+00:00",
+    "telegram_url": "https://t.me/job_am/53209",
+    "is_job_posting": true,
+    "title": "Public Procurement Specialist",
+    "category": "Procurement & Purchasing",
+    "company": "Երվադա ՍՊԸ",
+    "apply_links": [
+      "https://job.am/hy/job/petakan-gnumneri-masnaget-78625?utm_source=telegram",
+      "https://job.am/hy/job/petakan-gnumneri-masnaget-78625"
+    ],
+    "translated_summary": "The organization is hiring a public procurement specialist who will be responsible for the proper preparation of necessary documents within the framework of the public procurement process, uploading and submitting applications in the ARMEPS system, as well as participating in tenders...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53208",
+    "channel": "@job_am",
+    "message_id": 53208,
+    "date": "2026-09-02T10:00:31+00:00",
+    "telegram_url": "https://t.me/job_am/53208",
+    "is_job_posting": true,
+    "title": "Video Surveillance Operator",
+    "category": "Security",
+    "company": "Mari Network",
+    "apply_links": [
+      "https://job.am/hy/job/tesahskman-operator-75017?utm_source=telegram",
+      "https://job.am/hy/job/tesahskman-operator-75017"
+    ],
+    "translated_summary": "The company needs a video surveillance operator. Responsibilities: Follow the monitors, surveillance of the company's areas, employees' work processes, preparation and presentation of reports. Requirements: Video surveillance operator's experience, knowledge of CCTV systems, ability to work independently and as part of a team, good communication skills, attention to detail, responsibility.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53207",
+    "channel": "@job_am",
+    "message_id": 53207,
+    "date": "2026-09-02T10:00:31+00:00",
+    "telegram_url": "https://t.me/job_am/53207",
     "is_job_posting": true,
     "title": "Delivery Driver",
     "category": "Logistics & Transportation",
-    "company": "Alpha Food Service LLC",
+    "company": "Daroynkh LLC",
     "apply_links": [
-      "https://job.am/hy/job/varord-araqich-77046?utm_source=telegram"
+      "https://job.am/hy/job/araqich-78623?utm_source=telegram",
+      "https://job.am/hy/job/araqich-78623"
     ],
-    "translated_summary": "Alpha Food Service is hiring delivery drivers to ensure timely and accurate delivery of goods to customers. Responsibilities: According to the specified routes, carry out the timely and accurate delivery of goods ...",
+    "translated_summary": "The company needs a delivery driver. Responsibilities: Delivery of goods to customers, Loading and arranging goods, Accurate and timely delivery of orders, Ensuring the completeness of the goods, Communication with customers...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51752",
+    "id": "job_am_53206",
     "channel": "@job_am",
-    "message_id": 51752,
-    "date": "2026-07-23T13:00:20+00:00",
-    "telegram_url": "https://t.me/job_am/51752",
+    "message_id": 53206,
+    "date": "2026-09-02T10:00:26+00:00",
+    "telegram_url": "https://t.me/job_am/53206",
     "is_job_posting": true,
-    "title": "Engineer",
-    "category": "Engineering",
-    "company": "RYDENA LLC",
+    "title": "Driver - Delivery",
+    "category": "Transportation & Logistics",
+    "company": "Autofan ES LLC",
     "apply_links": [
-      "https://job.am/hy/job/injener-77044?utm_source=telegram",
-      "https://job.am/hy/job/injener-77044"
+      "https://job.am/hy/job/varord-araqich-78622?utm_source=telegram",
+      "https://job.am/hy/job/varord-araqich-78622"
     ],
-    "translated_summary": "The Engineer is responsible for the implementation of electrical and engineering works during the construction and commissioning phases of the production area, verification of technical documents, acceptance of equipment, as well as after the completion of construction ...",
+    "translated_summary": "Autofan ES company is looking for an experienced driver-delivery person, who will be responsible for the safe and timely transportation of goods intended for the company's sales. If you are ready to contribute your professional skills...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51750",
+    "id": "job_am_53205",
     "channel": "@job_am",
-    "message_id": 51750,
-    "date": "2026-07-23T13:00:15+00:00",
-    "telegram_url": "https://t.me/job_am/51750",
+    "message_id": 53205,
+    "date": "2026-09-02T10:00:22+00:00",
+    "telegram_url": "https://t.me/job_am/53205",
     "is_job_posting": true,
-    "title": "Technician",
-    "category": "Engineering & Manufacturing",
-    "company": "Navta Tekhnologji LLC",
+    "title": "Senior Graphic Designer",
+    "category": "Design & Creative",
+    "company": "Yazaryan Holding",
     "apply_links": [
-      "https://job.am/hy/job/texnik-77001?utm_source=telegram"
+      "https://job.am/hy/job/avag-grafik-dizayner-78621?utm_source=telegram",
+      "https://job.am/hy/job/avag-grafik-dizayner-78621"
     ],
-    "translated_summary": "«Navta Tekhnologji» LLC is hiring a technician for the maintenance, repair and commissioning of mechanical and hydraulic equipment. Responsibilities include technical maintenance and repair of Benz-Gas filling station equipment, assembly and commissioning work...",
+    "translated_summary": "Yazaryan Holding is looking for a Senior Graphic Designer to join our team. Responsibilities: At least 5+ years of work experience in developing graphic materials in accordance with the company's branding guidelines. Digital and print design...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51744",
+    "id": "job_am_53204",
     "channel": "@job_am",
-    "message_id": 51744,
-    "date": "2026-07-23T13:00:05+00:00",
-    "telegram_url": "https://t.me/job_am/51744",
+    "message_id": 53204,
+    "date": "2026-09-02T10:00:21+00:00",
+    "telegram_url": "https://t.me/job_am/53204",
     "is_job_posting": true,
-    "title": "Receptionist",
-    "category": "Hospitality & Food Service",
-    "company": "Median Hotel",
+    "title": "Consultant - Sales",
+    "category": "Sales",
+    "company": "Free Style Group",
     "apply_links": [
-      "https://job.am/hy/job/receptionist-77038?utm_source=telegram"
+      "https://job.am/hy/job/xorhrdatu-vacharogh-78620?utm_source=telegram",
+      "https://job.am/hy/job/xorhrdatu-vacharogh-78620"
     ],
-    "translated_summary": "We are looking for an administrator-receptionist. The working experience is not a must. General Duties Checking in and out of guests, completing relevant procedures․ Greeting guests in a professional & friendly manner․ Informing guests about...",
+    "translated_summary": "Free Style Group is looking for consultant-salespeople (Yerevan Mall, Dalma, Mega Mall, Northern Avenue, Rio Mall), who have a free schedule. Students currently studying in a system are not considered. Responsibilities Offer customers...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51743",
+    "id": "job_am_53203",
     "channel": "@job_am",
-    "message_id": 51743,
-    "date": "2026-07-23T13:00:04+00:00",
-    "telegram_url": "https://t.me/job_am/51743",
+    "message_id": 53203,
+    "date": "2026-09-02T10:00:20+00:00",
+    "telegram_url": "https://t.me/job_am/53203",
     "is_job_posting": true,
-    "title": "Restaurant Manager",
-    "category": "Hospitality & Food Service",
-    "company": "Երեմյան Ընկերությունների խումբ",
+    "title": "Content Writer / Copywriter",
+    "category": "Marketing & Advertising",
+    "company": "Berdl",
     "apply_links": [
-      "https://job.am/hy/job/restorani-menejer-76997?utm_source=telegram"
+      "https://job.am/hy/job/content-writer-copywriter-78591?utm_source=telegram",
+      "https://job.am/hy/job/content-writer-copywriter-78591"
     ],
-    "translated_summary": "The manager is responsible for the direct supervision of the restaurant's service staff, which includes welcoming guests from start to finish, as well as organizing and managing all processes preceding and following this.",
+    "translated_summary": "We are looking for a Content Writer / Copywriter. We are looking for a person who really loves and can write. We don't need just a \"text collector\". We need an author who can find an interesting topic, understand its essence and turn it into a readable,...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51740",
+    "id": "job_am_53202",
     "channel": "@job_am",
-    "message_id": 51740,
-    "date": "2026-07-23T13:00:02+00:00",
-    "telegram_url": "https://t.me/job_am/51740",
+    "message_id": 53202,
+    "date": "2026-09-02T10:00:20+00:00",
+    "telegram_url": "https://t.me/job_am/53202",
     "is_job_posting": true,
-    "title": "Arabic Speaking Game Presenter",
-    "category": "Gaming & Entertainment",
-    "company": "Evolution Studio AM",
+    "title": "Accountant - Operator",
+    "category": "Finance",
+    "company": "Venlo Shop",
     "apply_links": [
-      "https://job.am/hy/job/arabic-speaking-game-presenter-77035?utm_source=telegram"
+      "https://job.am/hy/job/hashvetar-operator-78619?utm_source=telegram",
+      "https://job.am/hy/job/hashvetar-operator-78619"
     ],
-    "translated_summary": "We are looking for Arabic Game Presenters to join our team. Job responsibilities Be the face of our award-winning products; Lead the game according to the instructions on the screen; Communicate with our product users from around the...",
+    "translated_summary": "Seeking an Accountant - Operator responsible for the accurate and timely recording of goods entry and exit, reports, documents, and data. Responsibilities include ...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51739",
+    "id": "job_am_53201",
     "channel": "@job_am",
-    "message_id": 51739,
-    "date": "2026-07-23T10:01:10+00:00",
-    "telegram_url": "https://t.me/job_am/51739",
+    "message_id": 53201,
+    "date": "2026-09-02T10:00:19+00:00",
+    "telegram_url": "https://t.me/job_am/53201",
     "is_job_posting": true,
-    "title": "Waiter / Waitress",
+    "title": "Sales Specialist",
+    "category": "Sales",
+    "company": "Mobile Yerevan",
+    "apply_links": [
+      "https://job.am/hy/job/vacharqi-masnaget-78618?utm_source=telegram",
+      "https://job.am/hy/job/vacharqi-masnaget-78618"
+    ],
+    "translated_summary": "We are looking for an active, communicative and goal-oriented Sales Specialist who loves working with people, has a desire to develop and wants to receive a high income in return for their results. Responsibilities: Attracting new customers and engaging existing customers...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53200",
+    "channel": "@job_am",
+    "message_id": 53200,
+    "date": "2026-09-02T10:00:15+00:00",
+    "telegram_url": "https://t.me/job_am/53200",
+    "is_job_posting": true,
+    "title": "Accountant",
+    "category": "Finance",
+    "company": "EJPE Project",
+    "apply_links": [
+      "https://job.am/hy/job/hashvetar-75802?utm_source=telegram",
+      "https://job.am/hy/job/hashvetar-75802"
+    ],
+    "translated_summary": "EJPE Project, an accounting company, is hiring accountants for the filling of the accounting department. Both experienced and novice accountants are welcome. Responsibilities include...",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53199",
+    "channel": "@job_am",
+    "message_id": 53199,
+    "date": "2026-09-02T10:00:15+00:00",
+    "telegram_url": "https://t.me/job_am/53199",
+    "is_job_posting": true,
+    "title": "Security Guard",
+    "category": "Security",
+    "company": "Arzni Poultry Factory",
+    "apply_links": [
+      "https://job.am/hy/job/anvtangutyan-ashxatakic-78616?utm_source=telegram",
+      "https://job.am/hy/job/anvtangutyan-ashxatakic-78616"
+    ],
+    "translated_summary": "Arzni Poultry Factory is hiring security guards for its factory located in Hayanist. The position requires a 24-hour shift. Responsibilities include performing assigned tasks and ensuring the safety of the premises.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53198",
+    "channel": "@job_am",
+    "message_id": 53198,
+    "date": "2026-09-02T10:00:14+00:00",
+    "telegram_url": "https://t.me/job_am/53198",
+    "is_job_posting": true,
+    "title": "Economic (Cleaning) Department Supervisor",
     "category": "Hospitality & Food Service",
     "company": "Courtyard by Marriott Yerevan",
     "apply_links": [
-      "https://job.am/hy/job/waiter-waitress-76995?utm_source=telegram"
+      "https://job.am/hy/job/tntesakan-maqrutyan-bajni-verahskich-78617?utm_source=telegram",
+      "https://job.am/hy/job/tntesakan-maqrutyan-bajni-verahskich-78617"
     ],
-    "translated_summary": "We’re excited to announce two open positions at Courtyard by Marriott Yerevan. Waiter (Mid-Level) – with experience Waiter (Entry-Level) – without experience If you’re passionate about hospitality and eager to grow your career with an int...",
+    "translated_summary": "Courtyard by Marriott Yerevan international hotel is looking for an experienced supervisor to join the hotel's economic (cleaning) department. Responsibilities: Supervise the cleaning of guest rooms and public areas (corridors, lobbies, restaurants, etc.)",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51735",
+    "id": "job_am_53197",
     "channel": "@job_am",
-    "message_id": 51735,
-    "date": "2026-07-23T10:01:04+00:00",
-    "telegram_url": "https://t.me/job_am/51735",
+    "message_id": 53197,
+    "date": "2026-09-02T10:00:14+00:00",
+    "telegram_url": "https://t.me/job_am/53197",
     "is_job_posting": true,
-    "title": "Security Guard",
-    "category": "Security & Safety",
-    "company": "A-Security",
-    "apply_links": [
-      "https://job.am/hy/job/anvtangutyan-ashxatakic-77032?utm_source=telegram"
-    ],
-    "translated_summary": "Job description: Security guards are needed in Yerevan, at the guarded office space located on Isaakovs street. Salary: 150,000-160,000 AMD. Responsibilities: Providing security, ...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51734",
-    "channel": "@job_am",
-    "message_id": 51734,
-    "date": "2026-07-23T10:01:03+00:00",
-    "telegram_url": "https://t.me/job_am/51734",
-    "is_job_posting": true,
-    "title": "Construction Manager",
-    "category": "Construction & Engineering",
-    "company": "HAMEDIL Construction Group",
-    "apply_links": [
-      "https://job.am/hy/job/shinhraparaki-ghekavar-77031?utm_source=telegram"
-    ],
-    "translated_summary": "The Construction Manager is responsible for the overall management of construction projects (multi-story residential buildings and commercial structures) being carried out in Talin. They ensure the implementation of construction according to established...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51733",
-    "channel": "@job_am",
-    "message_id": 51733,
-    "date": "2026-07-23T10:01:03+00:00",
-    "telegram_url": "https://t.me/job_am/51733",
-    "is_job_posting": true,
-    "title": "Interior Finishing Engineer",
-    "category": "Construction & Engineering",
-    "company": "HAMEDIL Construction Group",
-    "apply_links": [
-      "https://job.am/hy/job/nerqin-hardarman-ashxghek-77024?utm_source=telegram"
-    ],
-    "translated_summary": "The main responsibilities are: 1. Engineering and pre-calculation works Carry out visits as needed and assist the engineer in preparing estimates and quantities for construction work. Timely and accurately assess the controlled construction site ...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51732",
-    "channel": "@job_am",
-    "message_id": 51732,
-    "date": "2026-07-23T10:00:34+00:00",
-    "telegram_url": "https://t.me/job_am/51732",
-    "is_job_posting": true,
-    "title": "Barista",
-    "category": "Hospitality & Food Service",
-    "company": "Coffee House Company",
-    "apply_links": [
-      "https://job.am/hy/job/barista-77022?utm_source=telegram"
-    ],
-    "translated_summary": "Join the warm team of Coffee House and follow your passion for coffee! With us, you will master the basic skills of a barista, discover all the secrets of preparing coffee, have the opportunity to interact with diverse people and...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51729",
-    "channel": "@job_am",
-    "message_id": 51729,
-    "date": "2026-07-23T10:00:27+00:00",
-    "telegram_url": "https://t.me/job_am/51729",
-    "is_job_posting": true,
-    "title": "Draftsman - Designer",
-    "category": "Engineering & Design",
-    "company": "Veled Group",
-    "apply_links": [
-      "https://job.am/hy/job/gcagrogh-dizayner-77020?utm_source=telegram",
-      "https://job.am/hy/job/gcagrogh-dizayner-77020"
-    ],
-    "translated_summary": "Veled Group's glass production department is looking for a responsible and proactive draftsman - designer who will join our team and support the design and drafting processes of glass production. Responsibilities: Drafting various types of glasses ...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51726",
-    "channel": "@job_am",
-    "message_id": 51726,
-    "date": "2026-07-23T10:00:26+00:00",
-    "telegram_url": "https://t.me/job_am/51726",
-    "is_job_posting": true,
-    "title": "Driver",
-    "category": "Transportation & Logistics",
-    "company": "Borisovkа LLC",
-    "apply_links": [
-      "https://job.am/hy/job/varord-77017?utm_source=telegram"
-    ],
-    "translated_summary": "The organization is hiring a driver who will carry out the driver's work assignments in Yerevan, possibly with small assistance to the courier as well. The company provides a Mercedes Sprinter delivery vehicle. By using our website, you accept that you have read and understood our website's Cookie Policy, Privacy Policy, and Terms of Service.",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51723",
-    "channel": "@job_am",
-    "message_id": 51723,
-    "date": "2026-07-23T10:00:17+00:00",
-    "telegram_url": "https://t.me/job_am/51723",
-    "is_job_posting": true,
-    "title": "1C Programmer",
-    "category": "Software Engineering",
+    "title": "Social Media Marketing (SMM)",
+    "category": "Marketing",
     "company": "Sovrano",
     "apply_links": [
-      "https://job.am/hy/job/1c-cragravorogh-77013?utm_source=telegram"
+      "https://job.am/hy/job/social-media-marketing-smm-77146?utm_source=telegram",
+      "https://job.am/hy/job/social-media-marketing-smm-77146"
     ],
-    "translated_summary": "Sovrano company is hiring an experienced 1C Programmer who not only masters programming on the 1C platform but also has practical experience using the 1C system as a user. Responsibilities Developing and maintaining 1C systems...",
+    "translated_summary": "Sovrano company is hiring an experienced Social Media Marketing (SMM) specialist. Responsibilities: Manage the company's pages, accounts, and groups on social networks, Be responsible for updating the information published on the website...",
     "original_language": "Armenian"
   },
   {
-    "id": "job_am_51722",
+    "id": "job_am_53196",
     "channel": "@job_am",
-    "message_id": 51722,
-    "date": "2026-07-23T10:00:17+00:00",
-    "telegram_url": "https://t.me/job_am/51722",
+    "message_id": 53196,
+    "date": "2026-09-02T10:00:13+00:00",
+    "telegram_url": "https://t.me/job_am/53196",
     "is_job_posting": true,
-    "title": "Restaurant Manager",
-    "category": "Hospitality & Food Service",
-    "company": "IjeWine",
-    "apply_links": [
-      "https://job.am/hy/job/restorani-menejer-77012?utm_source=telegram"
-    ],
-    "translated_summary": "IjeWine restaurant, located in the Ijevan Wine-Brandy Factory area, invites a restaurant manager to work. The manager will be responsible for organizing the uninterrupted operation of the restaurant, ensuring a high level of service, managing staff...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51720",
-    "channel": "@job_am",
-    "message_id": 51720,
-    "date": "2026-07-23T10:00:15+00:00",
-    "telegram_url": "https://t.me/job_am/51720",
-    "is_job_posting": true,
-    "title": "Game Presenter (afternoon shift)",
-    "category": "Gaming & Entertainment",
-    "company": "Evolution Studio AM",
-    "apply_links": [
-      "https://job.am/hy/job/game-presenter-afternoon-shift-77008?utm_source=telegram"
-    ],
-    "translated_summary": "Description Evolution is a market-leading Swedish company, founded in 2006 and listed on Nasdaq Nordic (EVO). We are a global developer and provider of innovative products and services for online casino entertainment. Our business-to-business solutio...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51719",
-    "channel": "@job_am",
-    "message_id": 51719,
-    "date": "2026-07-23T10:00:14+00:00",
-    "telegram_url": "https://t.me/job_am/51719",
-    "is_job_posting": true,
-    "title": "Engineer",
-    "category": "Engineering",
-    "company": "STP Group LLC",
-    "apply_links": [
-      "https://job.am/hy/job/injener-77007?utm_source=telegram"
-    ],
-    "translated_summary": "STP Group LLC is hiring an engineer with a professional qualification in the field of construction of public buildings and structures. Responsibilities: Organization and implementation of construction works, technical documentation...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "job_am_51716",
-    "channel": "@job_am",
-    "message_id": 51716,
-    "date": "2026-07-23T10:00:05+00:00",
-    "telegram_url": "https://t.me/job_am/51716",
-    "is_job_posting": true,
-    "title": "Technical Department Manager",
-    "category": "Management & Operations",
-    "company": "Hayas Hospitality Group",
-    "apply_links": [
-      "https://job.am/hy/job/texnikakan-bajni-ghekavar-77003?utm_source=telegram"
-    ],
-    "translated_summary": "We are looking for a responsible and experienced Technical Department Manager who will ensure the uninterrupted operation of all technical systems of the hotel and be responsible for their proper operation, maintenance and repair in accordance with the requirements of the hotel...",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "Remoteit_13618",
-    "channel": "@Remoteit",
-    "message_id": 13618,
-    "date": "2026-07-23T13:09:52+00:00",
-    "telegram_url": "https://t.me/Remoteit/13618",
-    "is_job_posting": true,
-    "title": "Senior Scala Engineer",
-    "category": "Software Engineering",
-    "company": "Betby",
-    "apply_links": [
-      "https://teletype.in/@courierus/fRmX73xclVd"
-    ],
-    "translated_summary": "REMOTE GLOBAL OR RELOCATION TO 4 COUNTRIES As a fast-growing, award-winning company, Betby powers the industry with our premium sportsbook, featuring world-class risk management and seamless omni-channel support, reaching millions of players across countless markets. With offices in Latvia, Malta, Spain, and Montenegro, we offer a vibrant work culture, relocation opportunities, and full support for remote talent across the globe. Join Betby and unlock endless opportunities for growth, success, and making a real impact in the world of iGaming! Short Description We are looking for a experienced Scala Engineer to join our Line management team at BETBY. The team is building and maintaining platform that delivers betting odds to the sportsbook. This is a high-impact role within a cross-functional environment, working closely with multiple teams and services. Responsibilities Develop and maintain Scala-based sportsbook services. Work on real-time sportsbook data delivery using WebSocket and GraphQL. Rework the current line delivery protocol and support the migration from RabbitMQ to Kafka. Improve streaming solutions to increase performance, scalability, and loading speed. Optimize sportsbook configuration processing across services. Work on Weblines, WebSocket/GraphQL lines, and other high-load sportsbook components. Contribute to architecture and technical decisions for streaming and line delivery systems. Refactor and improve existing services. Add and improve functional, integration, performance, and regression testing practices. Help make releases safer, faster, and more reliable. Requirements Strong backend engineering experience (Senior or strong Middle+) Solid knowledge of Scala and its ecosystem (Effect libraries such as Cats Effect, ZIO, Kyo) Solid knowledge of streaming implementations in Scala (Reactive Streams, Akka, FS2, etc.) Experience building web services (REST APIs, GraphQL, WebSockets) Experience developing distributed systems and microservices (e.g. Kafka, RabbitMQ, RPC) Ability to work with complex system design and non-trivial business logic Perks and Benefits Comprehensive health insurance with coverage for your well-being Paid sick leave up to 10 days without medical certificate 20 days of paid vacation plus additional leave for important life events Learning and growth opportunities with support for professional development Language learning support for multilingual collaboration Modern hardware provided for your work International team",
-    "original_language": "English"
-  },
-  {
-    "id": "staffamIT_15566",
-    "channel": "@staffamIT",
-    "message_id": 15566,
-    "date": "2026-07-23T15:12:22+00:00",
-    "telegram_url": "https://t.me/staffamIT/15566",
-    "is_job_posting": true,
-    "title": "Senior Automation QA Engineer",
-    "category": "Software Engineering",
-    "company": "Digitain",
-    "apply_links": [
-      "https://staff.am/en/jobs/software-development/senior-automation-qa-engineer-126",
-      "https://staff.am/senior-automation-qa-engineer-126"
-    ],
-    "translated_summary": "We are looking for an experienced Senior Automation QA Engineer to join our Quality Engineering team. In this role, you will be responsible for ensuring the quality, reliability, and performance of our products by designing, developing, and maintaining scalable automation solutions. You will work closely with Software Engineers, Product Managers, and QA Engineers while contributing to automation strategy, quality improvements, and engineering best practices.",
-    "original_language": null
-  },
-  {
-    "id": "staffamIT_15564",
-    "channel": "@staffamIT",
-    "message_id": 15564,
-    "date": "2026-07-23T11:49:59+00:00",
-    "telegram_url": "https://t.me/staffamIT/15564",
-    "is_job_posting": true,
-    "title": "Developer — AI applications & automation",
-    "category": "Software Development",
-    "company": "OrangeLab Technology & Investments Co LTD",
-    "apply_links": [
-      "https://staff.am/developer-ai-applications-automation-2-positions"
-    ],
-    "translated_summary": "We are assembling a small development team to create AI-applications and automation: part of the projects — for internal tasks (investments, real estate), part — market products for mass consumer. Projects are done from scratch, with a high degree of autonomy and active use of AI directly in the development process.",
-    "original_language": "Russian"
-  },
-  {
-    "id": "staffamIT_15562",
-    "channel": "@staffamIT",
-    "message_id": 15562,
-    "date": "2026-07-23T09:51:14+00:00",
-    "telegram_url": "https://t.me/staffamIT/15562",
-    "is_job_posting": true,
-    "title": "Project Manager – Creative & Communications Projects",
-    "category": "Product/Project Management",
-    "company": "AxelMondrian & Partners CJSC",
-    "apply_links": [
-      "https://staff.am/en/jobs/project-management/project-manager-creative-communications-projects",
-      "https://staff.am/project-manager-creative-communications-projects"
-    ],
-    "translated_summary": "We are looking for a Project Manager who can transform ideas into well-executed projects. At AxelMondrian, project management is more than planning timelines and coordinating tasks. It is about bringing together strategy, creativity, people and processes to deliver work that creates impact.",
-    "original_language": null
-  },
-  {
-    "id": "staffamIT_15561",
-    "channel": "@staffamIT",
-    "message_id": 15561,
-    "date": "2026-07-23T06:25:49+00:00",
-    "telegram_url": "https://t.me/staffamIT/15561",
-    "is_job_posting": true,
-    "title": "Agile Coach",
-    "category": "Product/Project Management",
-    "company": "Ameriabank CJSC",
-    "apply_links": [
-      "https://staff.am/en/jobs/project-management/agile-coach-16",
-      "https://staff.am/agile-coach-16"
-    ],
-    "translated_summary": "Ameriabank CJSC is looking for an Agile Coach to manage Tribe and Squad (product team) ceremonies, efficiency of Squad processes and keeping up continuous improvement. The Agile Coach will develop a deep understanding of the Tribes and Squads processes and add value with broader perspective.",
-    "original_language": null
-  },
-  {
-    "id": "staffamIT_15560",
-    "channel": "@staffamIT",
-    "message_id": 15560,
-    "date": "2026-07-23T05:20:16+00:00",
-    "telegram_url": "https://t.me/staffamIT/15560",
-    "is_job_posting": true,
-    "title": "Cybersecurity Specialist",
-    "category": "IT security/Networks",
-    "company": "Ardshinbank OJSC",
-    "apply_links": [
-      "https://staff.am/en/jobs/network/kiberanvtangowtyan-pordzaget-5",
-      "https://staff.am/kiberanvtangowtyan-pordzaget-5"
-    ],
-    "translated_summary": "Ardshinbank is looking for a highly qualified Cybersecurity Specialist to join its team. If you meet the specified requirements, we are waiting for you.",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "iJobAm_28199",
-    "channel": "@iJobAm",
-    "message_id": 28199,
-    "date": "2026-07-23T10:15:23+00:00",
-    "telegram_url": "https://t.me/iJobAm/28199",
-    "is_job_posting": true,
-    "title": "Automation QA Engineer",
-    "category": "Software Engineering",
-    "company": "Sperasoft",
-    "apply_links": [
-      "https://www.linkedin.com/jobs/view/3194628075/",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "Automation QA Engineer position at Sperasoft in Yerevan. Responsibilities include automation testing of web-based applications, regression testing, optimizing routine tasks, supporting and developing automation tools, writing test documentation, and communicating with commercial foreign clients. Requirements include readiness to quickly understand project specifics, good understanding of testing processes, and experience as a Manual QA is a plus.",
-    "original_language": "English"
-  },
-  {
-    "id": "iJobAm_28198",
-    "channel": "@iJobAm",
-    "message_id": 28198,
-    "date": "2026-07-23T10:10:24+00:00",
-    "telegram_url": "https://t.me/iJobAm/28198",
-    "is_job_posting": true,
-    "title": "C Developer Intern",
-    "category": "Software Engineering",
-    "company": "Cloudlinux",
-    "apply_links": [
-      "https://am.linkedin.com/company/ijobam",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "C Developer Internship at Cloudlinux in Yerevan. Responsibilities include working on real-world projects, collaborating with experienced developers, and gaining experience in writing clean, efficient code. Requirements include some C programming skills, experience using Git, and basic Linux kernel building knowledge.",
-    "original_language": "English"
-  },
-  {
-    "id": "iJobAm_28193",
-    "channel": "@iJobAm",
-    "message_id": 28193,
-    "date": "2026-07-23T09:45:23+00:00",
-    "telegram_url": "https://t.me/iJobAm/28193",
-    "is_job_posting": true,
-    "title": "Dedicated Server Provisioning Engineer",
-    "category": "Information Technology",
-    "company": "UltaHost",
-    "apply_links": [
-      "https://am.linkedin.com/company/ijobam",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "Manage dedicated server procurement from hardware vendors and global data center providers. Coordinate server purchasing, vendor communication, and hardware sourcing. Oversee server inventory management and hardware resource allocation. Ensure efficient server provisioning and deployment for dedicated hosting customers.",
-    "original_language": "English"
-  },
-  {
-    "id": "iJobAm_28191",
-    "channel": "@iJobAm",
-    "message_id": 28191,
-    "date": "2026-07-23T09:30:10+00:00",
-    "telegram_url": "https://t.me/iJobAm/28191",
-    "is_job_posting": true,
-    "title": "Game Presenter",
-    "category": "Gaming & Entertainment",
-    "company": "SoftConstruct LLC",
-    "apply_links": [
-      "https://www.linkedin.com/company/ijobam",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "Organize and conduct various casino games, ensure all gaming rules and regulations are followed, represent the company in a positive manner, follow company policies and gaming authority regulations to ensure responsible gaming, maintain a professional appearance according to company dress code and grooming standards. Fluent in at least one of the following languages: English, Ukrainian, Korean, Portuguese, Turkish, Arabic, Persian or Spanish. Have a high sense of responsibility. Bachelor's degree will be considered an advantage. Ability to work a flexible schedule within 24 hours (including night shifts, weekends and holidays).",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "iJobAm_28190",
-    "channel": "@iJobAm",
-    "message_id": 28190,
-    "date": "2026-07-23T09:25:51+00:00",
-    "telegram_url": "https://t.me/iJobAm/28190",
-    "is_job_posting": true,
-    "title": "Account Operations Specialist",
-    "category": "Information Technology",
-    "company": "SoftConstruct LLC",
-    "apply_links": [
-      "https://am.linkedin.com/company/ijobam",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "The Account Operations Specialist will act as the primary liaison between Account Managers and internal departments, managing tasks, ensuring contract fulfillment, and monitoring project progress. They will also be responsible for document signature processes, troubleshooting bottlenecks, maintaining accurate records, and providing regular updates to Account Managers.",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "iJobAm_28186",
-    "channel": "@iJobAm",
-    "message_id": 28186,
-    "date": "2026-07-23T09:05:19+00:00",
-    "telegram_url": "https://t.me/iJobAm/28186",
-    "is_job_posting": true,
-    "title": "Full Stack Engineer",
-    "category": "Software Engineering",
-    "company": "DataArt",
-    "apply_links": [
-      "https://lnkd.in/e7ydT-tM",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "Develop and maintain full stack applications using Python and JavaScript or TypeScript. Build modern frontend interfaces and internal operational dashboards. Develop backend APIs and services for publishing administration workflows. Create tools for royalty processing, rights tracking, metadata management, and operational support. Build integrations with external systems, DSPs, licensing platforms, and internal Sony systems. Design and optimize ETL and data processing pipelines. Work with large music catalog datasets and publishing administration data. Collaborate with product managers, publishing operations teams, analysts, and architects. Participate in architecture and technical design discussions. Improve system scalability, reliability, and maintainability.",
-    "original_language": "English"
-  },
-  {
-    "id": "iJobAm_28185",
-    "channel": "@iJobAm",
-    "message_id": 28185,
-    "date": "2026-07-23T09:00:56+00:00",
-    "telegram_url": "https://t.me/iJobAm/28185",
-    "is_job_posting": true,
-    "title": "iOS Developer",
-    "category": "Software Engineering",
-    "company": "DataArt",
-    "apply_links": [
-      "https://am.linkedin.com/company/ijobam",
-      "https://fb.com/iJob.am",
-      "https://fb.com/groups/iJobAm",
-      "https://linkedin.com/company/iJobAm/"
-    ],
-    "translated_summary": "Develop, enhance, and maintain high-quality, scalable code for a mobile ticketing platform. Collaborate with cross-functional teams to implement new features and support experimentation initiatives.",
-    "original_language": null
-  },
-  {
-    "id": "vgrecruitingit_5816",
-    "channel": "@vgrecruitingit",
-    "message_id": 5816,
-    "date": "2026-07-23T13:03:00+00:00",
-    "telegram_url": "https://t.me/vgrecruitingit/5816",
-    "is_job_posting": true,
-    "title": "Principal Engineer - Software",
-    "category": "Software Engineering",
-    "company": "Microchip Armenia CJSC",
-    "apply_links": [
-      "https://telegra.ph/Principal-Engineer---Software-CC-Qt-MSVC-Linux-07-23"
-    ],
-    "translated_summary": "Microchip Technology Inc. is a leading provider of embedded control applications. Our product portfolio comprises general purpose and specialized 8-bit, 16-bit, and 32-bit microcontrollers, 32-bit microprocessors, field-programmable gate array (FPGA) products, a broad spectrum of high-performance linear, mixed-signal, power management, thermal management, radio frequency (RF), timing, safety, security, wired connectivity and wireless connectivity devices, as well as serial…",
-    "original_language": null
-  },
-  {
-    "id": "vgrecruitingit_5815",
-    "channel": "@vgrecruitingit",
-    "message_id": 5815,
-    "date": "2026-07-23T12:48:01+00:00",
-    "telegram_url": "https://t.me/vgrecruitingit/5815",
-    "is_job_posting": true,
-    "title": "Casino Risk Management Specialist",
-    "category": "Gaming & Entertainment",
-    "company": "Digitain",
-    "apply_links": [
-      "https://telegra.ph/Casino-Risk-Management-Specialist-07-23"
-    ],
-    "translated_summary": "We are looking for qualified and passionate individuals to join our fast-growing team as Casino Risk Management Specialist. The job is shift based and includes morning, evening and night shifts (is a must). Job responsibilities include identifying any type of fraud, investigating and classifying fraudulent users to reduce risks, performing analysis and suggesting appropriate product enhancements if fraud occurs, documenting all incidents of fraud for training new employees, and cooperating with casino…",
-    "original_language": null
-  },
-  {
-    "id": "vgrecruitingit_5813",
-    "channel": "@vgrecruitingit",
-    "message_id": 5813,
-    "date": "2026-07-23T12:21:11+00:00",
-    "telegram_url": "https://t.me/vgrecruitingit/5813",
-    "is_job_posting": true,
-    "title": "Systems Monitoring Specialist",
-    "category": "Technology & IT",
-    "company": "Acba bank",
-    "apply_links": [
-      "https://telegra.ph/Systems-Monitoring-Specialist-night-shift-07-23"
-    ],
-    "translated_summary": "Acba bank is looking for a Systems Monitoring Specialist to join their team. Responsibilities include incident analysis, responding to notifications, monitoring systems and networks, and submitting reports.",
-    "original_language": null
-  },
-  {
-    "id": "vgrecruitingit_5812",
-    "channel": "@vgrecruitingit",
-    "message_id": 5812,
-    "date": "2026-07-23T12:02:20+00:00",
-    "telegram_url": "https://t.me/vgrecruitingit/5812",
-    "is_job_posting": true,
-    "title": "Middle QA Engineer",
-    "category": "Software Engineering",
-    "company": "Globbing",
-    "apply_links": [
-      "https://telegra.ph/Middle-QA-Engineer-07-23"
-    ],
-    "translated_summary": "We are looking for a highly motivated and detail-oriented QA engineer to join our dynamic team. You'll play a vital role in ensuring the quality and stability of our products by designing, executing, and automating rigorous testing procedures.",
-    "original_language": null
-  },
-  {
-    "id": "Relocats_5191",
-    "channel": "@Relocats",
-    "message_id": 5191,
-    "date": "2026-07-23T13:10:03+00:00",
-    "telegram_url": "https://t.me/Relocats/5191",
-    "is_job_posting": true,
-    "title": "Senior Scala Engineer",
-    "category": "Software Engineering",
-    "company": "Betby",
-    "apply_links": [
-      "https://teletype.in/@courierus/fRmX73xclVd"
-    ],
-    "translated_summary": "REMOTE GLOBAL OR RELOCATION TO 4 COUNTRIES As a fast-growing, award-winning company, Betby powers the industry with our premium sportsbook, featuring world-class risk management and seamless omni-channel support, reaching millions of players across countless markets. With offices in Latvia, Malta, Spain, and Montenegro, we offer a vibrant work culture, relocation opportunities, and full support for remote talent across the globe. Join Betby and unlock endless opportunities for growth, success, and making a real impact in the world of iGaming! Short Description We are looking for a experienced Scala Engineer to join our Line management team at BETBY. The team is building and maintaining platform that delivers betting odds to the sportsbook. This is a high-impact role within a cross-functional environment, working closely with multiple teams and services. Responsibilities Develop and maintain Scala-based sportsbook services. Work on real-time sportsbook data delivery using WebSocket and GraphQL. Rework the current line delivery protocol and support the migration from RabbitMQ to Kafka. Improve streaming solutions to increase performance, scalability, and loading speed. Optimize sportsbook configuration processing across services. Work on Weblines, WebSocket/GraphQL lines, and other high-load sportsbook components. Contribute to architecture and technical decisions for streaming and line delivery systems. Refactor and improve existing services. Add and improve functional, integration, performance, and regression testing practices. Help make releases safer, faster, and more reliable. Requirements Strong backend engineering experience (Senior or strong Middle+) Solid knowledge of Scala and its ecosystem (Effect libraries such as Cats Effect, ZIO, Kyo) Solid knowledge of streaming implementations in Scala (Reactive Streams, Akka, FS2, etc.) Experience building web services (REST APIs, GraphQL, WebSockets) Experience developing distributed systems and microservices (e.g. Kafka, RabbitMQ, RPC) Ability to work with complex system design and non-trivial business logic Perks and Benefits Comprehensive health insurance with coverage for your well-being Paid sick leave up to 10 days without medical certificate 20 days of paid vacation plus additional leave for important life events Learning and growth opportunities with support for professional development Language learning support for multilingual collaboration Modern hardware provided for your work International team",
-    "original_language": "English"
-  },
-  {
-    "id": "yourjobpubliclink_1338",
-    "channel": "@yourjobpubliclink",
-    "message_id": 1338,
-    "date": "2026-07-23T07:37:07+00:00",
-    "telegram_url": "https://t.me/yourjobpubliclink/1338",
-    "is_job_posting": true,
-    "title": "Waiter/Waitress",
-    "category": "Hospitality & Food Service",
-    "company": "Arevik Restaurant",
-    "apply_links": [
-      "https://t.me/yourjobpubliclink/1338"
-    ],
-    "translated_summary": "High salary opportunity for individuals 18 years and older. We are looking for waiters, bartenders, and kitchen assistants (Sous-chef). Work experience is required. Location: Babayan 6A, on the shores of Arevik Lake, Arevik Restaurant. Contact: 093 959 970.",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "yourjobpubliclink_1337",
-    "channel": "@yourjobpubliclink",
-    "message_id": 1337,
-    "date": "2026-07-23T07:32:04+00:00",
-    "telegram_url": "https://t.me/yourjobpubliclink/1337",
-    "is_job_posting": true,
-    "title": "Waiter",
-    "category": "Hospitality & Food Service",
-    "company": "Orange Fitness",
-    "apply_links": [
-      "https://t.me/yourjobpubliclink/1337"
-    ],
-    "translated_summary": "High salary opportunity at Orange Fitness club. We are looking for a Waiter.\nContact: 098 370360\nCV: form.project@yahoo.com",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "yourjobpubliclink_1336",
-    "channel": "@yourjobpubliclink",
-    "message_id": 1336,
-    "date": "2026-07-23T05:57:13+00:00",
-    "telegram_url": "https://t.me/yourjobpubliclink/1336",
-    "is_job_posting": true,
-    "title": "Restaurant Staff",
-    "category": "Hospitality & Food Service",
-    "company": "KFC",
-    "apply_links": [
-      "https://t.me/yourjobpubliclink/1336"
-    ],
-    "translated_summary": "Seeking restaurant staff at KFC. 16 years or older. No work experience required.",
-    "original_language": "Armenian"
-  },
-  {
-    "id": "jobamIT_977",
-    "channel": "@jobamIT",
-    "message_id": 977,
-    "date": "2026-07-23T10:00:17+00:00",
-    "telegram_url": "https://t.me/jobamIT/977",
-    "is_job_posting": true,
-    "title": "1C Programmer",
-    "category": "Software Engineering",
+    "title": "Data Analyst",
+    "category": "Data Science & Analytics",
     "company": "Sovrano",
     "apply_links": [
-      "https://job.am/hy/job/1c-cragravorogh-77013?utm_source=telegram"
+      "https://job.am/hy/job/data-analyst-72035?utm_source=telegram",
+      "https://job.am/hy/job/data-analyst-72035"
     ],
-    "translated_summary": "Sovrano company is hiring an experienced 1C Programmer who not only masters programming on the 1C platform but also has practical experience using the 1C system as a user. Responsibilities Develop and maintain 1C systems, including customization, configuration, and integration with other applications. Provide technical support to users of 1C systems.",
+    "translated_summary": "Sovrano Company is looking for a Data Analyst / Power BI expert who will assist in the collection, analysis, reporting, dashboarding, and sales of sales data.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53195",
+    "channel": "@job_am",
+    "message_id": 53195,
+    "date": "2026-09-02T10:00:08+00:00",
+    "telegram_url": "https://t.me/job_am/53195",
+    "is_job_posting": true,
+    "title": "Market Development Manager",
+    "category": "Marketing",
+    "company": "Aten LLC",
+    "apply_links": [
+      "https://job.am/hy/job/shukayi-zargacman-patasxanatu-78614?utm_source=telegram",
+      "https://job.am/hy/job/shukayi-zargacman-patasxanatu-78614"
+    ],
+    "translated_summary": "Aten LLC is hiring a Market Development Manager for the sales sector. The ideal candidate will have a clear understanding of the sales field and strong, proactive characteristics. Responsibilities include regular market research, analysis of market trends, and development of strategies for market expansion.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53194",
+    "channel": "@job_am",
+    "message_id": 53194,
+    "date": "2026-09-02T10:00:08+00:00",
+    "telegram_url": "https://t.me/job_am/53194",
+    "is_job_posting": true,
+    "title": "Administrator",
+    "category": "Administrative & Office Support",
+    "company": "Hebra Dermatology Center",
+    "apply_links": [
+      "https://job.am/hy/job/administrator-72059?utm_source=telegram",
+      "https://job.am/hy/job/administrator-72059"
+    ],
+    "translated_summary": "Hebra Dermatology Center is hiring an administrator. Responsibilities include patient reception, establishing contact with patients via calls and letters, working with the Armed system, and more.",
+    "original_language": "Armenian"
+  },
+  {
+    "id": "job_am_53193",
+    "channel": "@job_am",
+    "message_id": 53193,
+    "date": "2026-09-02T10:00:07+00:00",
+    "telegram_url": "https://t.me/job_am/53193",
+    "is_job_posting": true,
+    "title": "Logistics Support Specialist U.S. Trucking",
+    "category": "Logistics & Supply Chain",
+    "company": "DispatchME Trucking Inc",
+    "apply_links": [
+      "https://job.am/hy/job/logistics-support-specialist-u-s-trucking-78612?utm_source=telegram",
+      "https://job.am/hy/job/logistics-support-specialist-u-s-trucking-78612"
+    ],
+    "translated_summary": "DispatchME is a fast-growing U.S.-based trucking company with its own fleet and owner-operators working under our motor-carrier authority. We are looking for an experienced Logistics Support Specialist to join our team.",
     "original_language": "Armenian"
   }
 ]
