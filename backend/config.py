@@ -41,11 +41,24 @@ class Settings:
             os.getenv("DEBUG_SAMPLES_FILE"),
             _ROOT / "debug_samples.json",
         )
+        self.channels_file: Path = _resolve_path(
+            os.getenv("CHANNELS_FILE"),
+            _ROOT / "channels.json",
+        )
         self.scrape_limit: int = int(os.getenv("SCRAPE_LIMIT", "100"))
         self.sample_limit: int = int(os.getenv("SAMPLE_LIMIT", "20"))
         # Keep discovery prompts inside a safe context window
         self.discovery_chunk_posts: int = int(os.getenv("DISCOVERY_CHUNK_POSTS", "25"))
         self.discovery_chunk_chars: int = int(os.getenv("DISCOVERY_CHUNK_CHARS", "14000"))
+        self.telegram_target_channel: str = (
+            os.getenv("TELEGRAM_TARGET_CHANNEL", "") or ""
+        ).strip()
+        self.telegram_publish_delay: float = float(
+            os.getenv("TELEGRAM_PUBLISH_DELAY", "2.5") or "2.5"
+        )
+        self.telegram_channel_delay: float = float(
+            os.getenv("TELEGRAM_CHANNEL_DELAY", "1.5") or "1.5"
+        )
         self.frontend_dist: Path = _ROOT / "frontend" / "dist"
 
 
