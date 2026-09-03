@@ -5,7 +5,13 @@ import {
   deleteJob,
   fetchCategories,
   fetchJobs,
+  publishAllPending,
+  publishJob,
 } from '../api'
+import { useActivity } from '../activity'
+import { formatChannelList } from '../targetChannels'
+import ChannelSelectModal from './ChannelSelectModal'
+import JobCard, { isPublishedJob, jobKey } from './JobCard'
 
 const SORT_OPTIONS = [
   { value: 'date_desc', label: 'Newest First' },
@@ -21,28 +27,6 @@ const DATE_PRESETS = [
   { value: 'this_month', label: 'This Month' },
   { value: 'custom', label: 'Custom' },
 ]
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleString()
-  } catch {
-    return iso
-  }
-}
-
-function isTelegramUrl(url) {
-  try {
-    const host = new URL(url).hostname.toLowerCase()
-    return host === 't.me' || host.endsWith('.t.me') || host === 'telegram.me'
-  } catch {
-    return /t\.me\//i.test(url || '')
-  }
-}
-
-function jobKey(job) {
-  return job?.id || String(job?.message_id || '')
-}
 
 function sortJobsClient(jobs, sortBy) {
   const list = [...jobs]
@@ -68,6 +52,7 @@ function sortJobsClient(jobs, sortBy) {
 }
 
 export default function JobDashboard({ refreshToken = 0 }) {
+  const { pipelineBusy } = useActivity()
   const [jobs, setJobs] = useState([])
   const [categories, setCategories] = useState([])
   const [category, setCategory] = useState('')
@@ -81,6 +66,10 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [clearing, setClearing] = useState(false)
   const [selectedJobIds, setSelectedJobIds] = useState(() => new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [publishingId, setPublishingId] = useState(null)
+  const [publishingAll, setPublishingAll] = useState(false)
+  const [publishNote, setPublishNote] = useState('')
+  const [channelModal, setChannelModal] = useState(null)
 
   const refreshAll = useCallback(async () => {
     setLoading(true)
@@ -234,7 +223,99 @@ export default function JobDashboard({ refreshToken = 0 }) {
     }
   }
 
+  function openPublishModal(job, { republish = false } = {}) {
+    const jobId = jobKey(job)
+    if (!jobId) return
+    if (republish) {
+      setChannelModal({ mode: 'one', job, republish: true })
+      return
+    }
+    if (isPublishedJob(job)) return
+    setChannelModal({ mode: 'one', job, republish: false })
+  }
+
+  function openPublishAll() {
+    const pending = jobs.filter((j) => !j.published_to_telegram)
+    if (!pending.length) return
+    setChannelModal({ mode: 'all', count: pending.length, republish: false })
+  }
+
+  async function confirmPublish({
+    targetChannels,
+    language = 'English',
+    republish = false,
+  } = {}) {
+    if (!channelModal) return
+    const channels = Array.isArray(targetChannels) ? targetChannels : [targetChannels]
+    const dest = formatChannelList(channels)
+    const isRepublish = Boolean(republish || channelModal.republish)
+    setError('')
+    setPublishNote('')
+    if (channelModal.mode === 'one') {
+      const job = channelModal.job
+      const jobId = jobKey(job)
+      setPublishingId(jobId)
+      try {
+        const result = await publishJob(jobId, channels, language, {
+          republish: isRepublish,
+        })
+        const publishedAt = new Date().toISOString()
+        const nextHistory =
+          result.publication_history ||
+          [
+            ...(Array.isArray(job.publication_history) ? job.publication_history : []),
+            ...channels.map((channel) => ({
+              channel,
+              language,
+              published_at: publishedAt,
+            })),
+          ]
+        setJobs((prev) =>
+          prev.map((item) =>
+            jobKey(item) === jobId
+              ? {
+                  ...item,
+                  published_to_telegram: true,
+                  status: 'PUBLISHED',
+                  published_url: result.posted_url || item.published_url,
+                  published_at: publishedAt,
+                  published_channels: result.channels || channels,
+                  published_language: result.language || language,
+                  publication_history: nextHistory,
+                }
+              : item,
+          ),
+        )
+        setPublishNote(
+          result.message ||
+            `${isRepublish ? 'Republished' : 'Published'} job ${jobId} to ${dest}.`,
+        )
+        setChannelModal(null)
+        await refreshAll()
+      } catch (err) {
+        setError(err.message || `Failed to ${isRepublish ? 'republish' : 'publish'} job`)
+      } finally {
+        setPublishingId(null)
+      }
+      return
+    }
+
+    setPublishingAll(true)
+    try {
+      const result = await publishAllPending({ targetChannels: channels, language })
+      setPublishNote(result.message || `Publishing to ${dest}…`)
+      setChannelModal(null)
+      await refreshAll()
+    } catch (err) {
+      setError(err.message || 'Failed to start publish-all')
+    } finally {
+      setPublishingAll(false)
+    }
+  }
+
+  const pendingCount = jobs.filter((j) => !j.published_to_telegram).length
   const busy = loading || clearing || bulkDeleting
+  const publishBusy = busy || publishingAll || Boolean(publishingId) || pipelineBusy
 
   return (
     <section className="panel job-dashboard">
@@ -273,6 +354,21 @@ export default function JobDashboard({ refreshToken = 0 }) {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            className="btn accent"
+            onClick={openPublishAll}
+            disabled={publishBusy || pendingCount === 0}
+          >
+            {publishingAll ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Publishing…
+              </>
+            ) : (
+              `Publish All Unposted${pendingCount ? ` (${pendingCount})` : ''}`
+            )}
+          </button>
           <button type="button" className="btn" onClick={refreshAll} disabled={busy}>
             {loading ? (
               <>
@@ -370,6 +466,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
       )}
 
       {error && <p className="status err">{error}</p>}
+      {publishNote && !error && <p className="status ok">{publishNote}</p>}
       {loading && jobs.length === 0 && <p className="muted">Loading jobs…</p>}
 
       {!loading && visibleJobs.length === 0 && (
@@ -381,57 +478,49 @@ export default function JobDashboard({ refreshToken = 0 }) {
       <ul className="job-list">
         {visibleJobs.map((job) => {
           const jobId = jobKey(job)
-          const selected = selectedJobIds.has(jobId)
           return (
-            <li key={jobId} className={`job-card ${selected ? 'selected' : ''}`}>
-              <div className="job-top">
-                <label className="job-select">
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={() => toggleJobSelected(jobId)}
-                    disabled={busy || !jobId}
-                    aria-label={`Select ${job.title || jobId}`}
-                  />
-                </label>
-                <h3>{job.title || 'Untitled'}</h3>
-                {job.category && <span className="badge">{job.category}</span>}
-                <button
-                  type="button"
-                  className="btn tiny danger-outline job-delete"
-                  onClick={() => handleDelete(job)}
-                  disabled={busy || deletingId === jobId}
-                  aria-label={`Delete ${job.title || jobId}`}
-                >
-                  {deletingId === jobId ? '…' : 'Delete'}
-                </button>
-              </div>
-              <div className="job-meta">
-                <time dateTime={job.date || undefined}>{formatDate(job.date)}</time>
-                {job.company && <span>· {job.company}</span>}
-                {job.channel && <span>· {job.channel}</span>}
-              </div>
-              <p className="summary">{job.translated_summary || 'No summary available.'}</p>
-              <div className="links">
-                {(job.apply_links || []).map((url) => {
-                  const tg = isTelegramUrl(url)
-                  return (
-                    <a
-                      key={url}
-                      className={`btn link ${tg ? 'tg' : ''}`}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {tg ? 'View Telegram Post' : 'Apply Here'}
-                    </a>
-                  )
-                })}
-              </div>
-            </li>
+            <JobCard
+              key={jobId}
+              job={job}
+              selected={selectedJobIds.has(jobId)}
+              busy={busy}
+              deleting={deletingId === jobId}
+              publishing={publishingId === jobId}
+              publishBusy={publishBusy}
+              onToggleSelected={toggleJobSelected}
+              onDelete={handleDelete}
+              onOpenPublishModal={openPublishModal}
+              onPublish={openPublishModal}
+            />
           )
         })}
       </ul>
+
+      <ChannelSelectModal
+        isOpen={Boolean(channelModal)}
+        republishMode={Boolean(channelModal?.republish)}
+        jobId={channelModal?.job ? jobKey(channelModal.job) : undefined}
+        title={
+          channelModal?.republish
+            ? 'Republish to Telegram'
+            : channelModal?.mode === 'all'
+              ? 'Publish all unposted jobs'
+              : 'Publish to Telegram'
+        }
+        description={
+          channelModal?.republish
+            ? `Re-send “${channelModal?.job?.title || 'this job'}” to boost visibility or reach new channels.`
+            : channelModal?.mode === 'all'
+              ? `Send ${channelModal.count} pending job${channelModal.count === 1 ? '' : 's'} to the selected channels.`
+              : `Post “${channelModal?.job?.title || 'this job'}” to Telegram.`
+        }
+        confirmLabel={channelModal?.republish ? 'Republish Now' : 'Publish Now'}
+        busy={publishingAll || Boolean(publishingId)}
+        onCancel={() => {
+          if (!publishingAll && !publishingId) setChannelModal(null)
+        }}
+        onConfirm={confirmPublish}
+      />
     </section>
   )
 }
