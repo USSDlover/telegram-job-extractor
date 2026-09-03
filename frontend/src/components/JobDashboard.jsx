@@ -7,6 +7,7 @@ import {
   fetchJobs,
   publishAllPending,
   publishJob,
+  publishSelectedJobs,
 } from '../api'
 import { useActivity } from '../activity'
 import { formatChannelList } from '../targetChannels'
@@ -68,6 +69,7 @@ export default function JobDashboard({ refreshToken = 0 }) {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [publishingId, setPublishingId] = useState(null)
   const [publishingAll, setPublishingAll] = useState(false)
+  const [publishingSelected, setPublishingSelected] = useState(false)
   const [publishNote, setPublishNote] = useState('')
   const [channelModal, setChannelModal] = useState(null)
 
@@ -240,6 +242,19 @@ export default function JobDashboard({ refreshToken = 0 }) {
     setChannelModal({ mode: 'all', count: pending.length, republish: false })
   }
 
+  function openPublishSelected() {
+    const ids = [...selectedJobIds]
+    if (!ids.length) return
+    const selectedJobs = jobs.filter((job) => ids.includes(jobKey(job)))
+    const hasPublished = selectedJobs.some((job) => isPublishedJob(job))
+    setChannelModal({
+      mode: 'selected',
+      jobIds: ids,
+      count: ids.length,
+      republish: hasPublished,
+    })
+  }
+
   async function confirmPublish({
     targetChannels,
     language = 'English',
@@ -300,6 +315,43 @@ export default function JobDashboard({ refreshToken = 0 }) {
       return
     }
 
+    if (channelModal.mode === 'selected') {
+      const ids = channelModal.jobIds || [...selectedJobIds]
+      setPublishingSelected(true)
+      try {
+        const result = await publishSelectedJobs({
+          jobIds: ids,
+          targetChannels: channels,
+          language,
+          republish: isRepublish,
+        })
+        const publishedAt = new Date().toISOString()
+        const idSet = new Set(ids)
+        setJobs((prev) =>
+          prev.map((item) =>
+            idSet.has(jobKey(item))
+              ? {
+                  ...item,
+                  published_to_telegram: true,
+                  status: 'PUBLISHED',
+                  published_at: publishedAt,
+                  published_channels: result.channels || channels,
+                  published_language: result.language || language,
+                }
+              : item,
+          ),
+        )
+        setPublishNote(result.message || `Publishing ${ids.length} selected job(s) to ${dest}…`)
+        setChannelModal(null)
+        await refreshAll()
+      } catch (err) {
+        setError(err.message || 'Failed to start publish-selected')
+      } finally {
+        setPublishingSelected(false)
+      }
+      return
+    }
+
     setPublishingAll(true)
     try {
       const result = await publishAllPending({ targetChannels: channels, language })
@@ -315,7 +367,8 @@ export default function JobDashboard({ refreshToken = 0 }) {
 
   const pendingCount = jobs.filter((j) => !j.published_to_telegram).length
   const busy = loading || clearing || bulkDeleting
-  const publishBusy = busy || publishingAll || Boolean(publishingId) || pipelineBusy
+  const publishBusy =
+    busy || publishingAll || publishingSelected || Boolean(publishingId) || pipelineBusy
 
   return (
     <section className="panel job-dashboard">
@@ -367,6 +420,21 @@ export default function JobDashboard({ refreshToken = 0 }) {
               </>
             ) : (
               `Publish All Unposted${pendingCount ? ` (${pendingCount})` : ''}`
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn btn-republish"
+            onClick={openPublishSelected}
+            disabled={publishBusy || selectedCount === 0}
+          >
+            {publishingSelected ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Publishing selected…
+              </>
+            ) : (
+              `Publish Selected${selectedCount ? ` (${selectedCount})` : ''}`
             )}
           </button>
           <button type="button" className="btn" onClick={refreshAll} disabled={busy}>
@@ -501,23 +569,37 @@ export default function JobDashboard({ refreshToken = 0 }) {
         republishMode={Boolean(channelModal?.republish)}
         jobId={channelModal?.job ? jobKey(channelModal.job) : undefined}
         title={
-          channelModal?.republish
-            ? 'Republish to Telegram'
-            : channelModal?.mode === 'all'
-              ? 'Publish all unposted jobs'
-              : 'Publish to Telegram'
+          channelModal?.mode === 'selected'
+            ? channelModal.republish
+              ? 'Publish / republish selected jobs'
+              : 'Publish selected jobs'
+            : channelModal?.republish
+              ? 'Republish to Telegram'
+              : channelModal?.mode === 'all'
+                ? 'Publish all unposted jobs'
+                : 'Publish to Telegram'
         }
         description={
-          channelModal?.republish
-            ? `Re-send “${channelModal?.job?.title || 'this job'}” to boost visibility or reach new channels.`
-            : channelModal?.mode === 'all'
-              ? `Send ${channelModal.count} pending job${channelModal.count === 1 ? '' : 's'} to the selected channels.`
-              : `Post “${channelModal?.job?.title || 'this job'}” to Telegram.`
+          channelModal?.mode === 'selected'
+            ? `Send ${channelModal.count} selected job${channelModal.count === 1 ? '' : 's'} to the chosen channels${channelModal.republish ? ', including jobs that were already published' : ''}.`
+            : channelModal?.republish
+              ? `Re-send “${channelModal?.job?.title || 'this job'}” to boost visibility or reach new channels.`
+              : channelModal?.mode === 'all'
+                ? `Send ${channelModal.count} pending job${channelModal.count === 1 ? '' : 's'} to the selected channels.`
+                : `Post “${channelModal?.job?.title || 'this job'}” to Telegram.`
         }
-        confirmLabel={channelModal?.republish ? 'Republish Now' : 'Publish Now'}
-        busy={publishingAll || Boolean(publishingId)}
+        confirmLabel={
+          channelModal?.mode === 'selected'
+            ? channelModal.republish
+              ? 'Publish Selected (incl. republish)'
+              : 'Publish Selected'
+            : channelModal?.republish
+              ? 'Republish Now'
+              : 'Publish Now'
+        }
+        busy={publishingAll || publishingSelected || Boolean(publishingId)}
         onCancel={() => {
-          if (!publishingAll && !publishingId) setChannelModal(null)
+          if (!publishingAll && !publishingSelected && !publishingId) setChannelModal(null)
         }}
         onConfirm={confirmPublish}
       />

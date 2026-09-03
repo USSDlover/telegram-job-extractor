@@ -41,6 +41,7 @@ from storage import (
     get_admin_channels,
     get_distinct_categories,
     get_job_by_id,
+    get_jobs_by_ids,
     get_jobs_sorted,
     get_published_jobs,
     get_unpublished_jobs,
@@ -313,6 +314,10 @@ class PublishTargetRequest(BaseModel):
         default=False,
         description="When true, re-send a job that is already published_to_telegram.",
     )
+    job_ids: List[str] = Field(
+        default_factory=list,
+        description="Optional job ids for publish-selected / filtered batch publish.",
+    )
 
 
 async def _targets_from_request(
@@ -452,6 +457,93 @@ async def publish_all_pending(
         "delay_seconds": delay if delay is not None else settings.telegram_publish_delay,
         "message": (
             f"Publishing {len(pending)} job(s) to {len(targets)} channel(s) ({label}) in {language}"
+        ),
+    }
+
+
+@app.post("/api/jobs/publish-selected")
+async def publish_selected_jobs(
+    background_tasks: BackgroundTasks,
+    payload: PublishTargetRequest,
+    channel_username: Optional[str] = Query(
+        default=None,
+        description="Destination channel; defaults to saved is_default channels.",
+    ),
+):
+    """Queue publishing for an explicit list of job ids (pending and/or republish)."""
+    job_ids = [str(item).strip() for item in (payload.job_ids or []) if str(item).strip()]
+    if not job_ids:
+        raise HTTPException(status_code=400, detail="job_ids must be a non-empty list")
+
+    targets = await _targets_from_request(payload, channel_username)
+    language = _language_from_request(payload)
+    republish = bool(payload.republish)
+    delay = payload.delay_seconds
+    resolved = await get_jobs_by_ids(job_ids)
+    selected = list(resolved.get("jobs") or [])
+    if not republish:
+        selected = [job for job in selected if not job.get("published_to_telegram")]
+    label = ", ".join(targets)
+
+    if not selected:
+        await broadcast_log(
+            "PUBLISH_BATCH_DONE",
+            "No selected jobs to publish"
+            + (" (already published; set republish=true to send again)." if not republish else "."),
+            {
+                "channels": targets,
+                "pending": 0,
+                "language": language,
+                "job_ids": job_ids,
+                "not_found": resolved.get("not_found") or [],
+                "republish": republish,
+            },
+        )
+        return {
+            "status": "idle",
+            "channels": targets,
+            "channel": targets[0] if targets else None,
+            "pending": 0,
+            "selected": 0,
+            "not_found": resolved.get("not_found") or [],
+            "language": language,
+            "republish": republish,
+            "message": "No selected jobs to publish",
+        }
+
+    verb = "Republishing" if republish else "Publishing"
+    await broadcast_log(
+        "PUBLISH_BATCH_QUEUED",
+        f"Queued {len(selected)} selected job(s) for {len(targets)} channel(s) ({label}) in {language}.",
+        {
+            "channels": targets,
+            "pending": len(selected),
+            "language": language,
+            "job_ids": [str(job.get("id") or job.get("message_id") or "") for job in selected],
+            "republish": republish,
+        },
+    )
+    background_tasks.add_task(
+        publish_pending_jobs,
+        delay_seconds=delay,
+        target_channels=targets,
+        language=language,
+        job_ids=job_ids,
+        republish=republish,
+    )
+    return {
+        "status": "started",
+        "channels": targets,
+        "channel": targets[0] if targets else None,
+        "pending": len(selected),
+        "selected": len(selected),
+        "not_found": resolved.get("not_found") or [],
+        "language": language,
+        "republish": republish,
+        "delay_seconds": delay if delay is not None else settings.telegram_publish_delay,
+        "message": (
+            f"{verb} {len(selected)} selected job(s) to {len(targets)} channel"
+            f"{'' if len(targets) == 1 else 's'} ({label}) in {language}"
         ),
     }
 

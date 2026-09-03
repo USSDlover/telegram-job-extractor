@@ -208,6 +208,42 @@ async def get_job_by_id(job_id: str) -> dict[str, Any] | None:
     return None
 
 
+async def get_jobs_by_ids(job_ids: Iterable[str]) -> dict[str, Any]:
+    """
+    Resolve jobs by unique `id` or `message_id`, preserving request order.
+    Returns {jobs, found_ids, not_found}.
+    """
+    needles = [str(j).strip() for j in (job_ids or []) if str(j).strip()]
+    if not needles:
+        return {"jobs": [], "found_ids": [], "not_found": []}
+
+    by_key: dict[str, dict[str, Any]] = {}
+    for job in await read_jobs():
+        jid = str(job.get("id") or "").strip()
+        mid = str(job.get("message_id") or "").strip()
+        if jid:
+            by_key[jid] = job
+        if mid:
+            by_key.setdefault(mid, job)
+
+    jobs: list[dict[str, Any]] = []
+    found_ids: list[str] = []
+    not_found: list[str] = []
+    seen: set[str] = set()
+    for needle in needles:
+        job = by_key.get(needle)
+        if job is None:
+            not_found.append(needle)
+            continue
+        resolved = str(job.get("id") or job.get("message_id") or needle)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        jobs.append(job)
+        found_ids.append(resolved)
+    return {"jobs": jobs, "found_ids": found_ids, "not_found": not_found}
+
+
 async def get_unpublished_jobs() -> list[dict[str, Any]]:
     """Jobs that have not been posted to the destination channel."""
     return [j for j in await read_jobs() if not j.get("published_to_telegram")]

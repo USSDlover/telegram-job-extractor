@@ -195,7 +195,7 @@ export default function JobCard({
             <button
               type="button"
               className="btn btn-republish"
-              onClick={() => onOpenPublishModal(job, { republish: true })}
+              onClick={() => openPublishModal({ republish: true })}
               disabled={publishBusy || publishing}
             >
               {publishing ? (

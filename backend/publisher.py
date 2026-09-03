@@ -28,6 +28,7 @@ from scraper import telegram_client
 from storage import (
     get_admin_channels,
     get_default_admin_handles,
+    get_jobs_by_ids,
     get_published_jobs,
     get_unpublished_jobs,
     mark_job_as_published,
@@ -541,10 +542,13 @@ async def publish_pending_jobs(
     delay_seconds: float | None = None,
     target_channels: Sequence[str] | None = None,
     language: str = "English",
+    job_ids: Sequence[str] | None = None,
+    republish: bool = False,
 ) -> dict[str, Any]:
     """
-    Publish every job with published_to_telegram=False, sequentially.
-    A single failure is logged over SSE and the loop continues.
+    Publish jobs sequentially. Default is every unpublished job.
+    When `job_ids` is set, only those records are considered; already-published
+    jobs are skipped unless `republish` is true.
     """
     try:
         targets = await resolve_publish_targets(
@@ -558,7 +562,13 @@ async def publish_pending_jobs(
     delay = settings.telegram_publish_delay if delay_seconds is None else float(delay_seconds)
     delay = max(0.0, delay)
     publish_language = normalize_publish_language(language)
-    pending = await get_unpublished_jobs()
+    if job_ids:
+        resolved = await get_jobs_by_ids(job_ids)
+        pending = list(resolved.get("jobs") or [])
+        if not republish:
+            pending = [job for job in pending if not job.get("published_to_telegram")]
+    else:
+        pending = await get_unpublished_jobs()
     total = len(pending)
     published = 0
     failed = 0
@@ -591,7 +601,13 @@ async def publish_pending_jobs(
             },
         )
         try:
-            result = await publish_job_to_channels(job, targets, language=publish_language)
+            already = bool(job.get("published_to_telegram"))
+            result = await publish_job_to_channels(
+                job,
+                targets,
+                language=publish_language,
+                republish=republish and already,
+            )
             if not result.get("ok"):
                 raise RuntimeError("; ".join(result.get("failed") or ["no destination succeeded"]))
             marked = await mark_job_as_published(

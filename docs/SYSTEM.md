@@ -275,6 +275,25 @@ Falls back to `is_default` channels in `channels.json` when the list is empty. Q
 
 ---
 
+### `POST /api/jobs/publish-selected`
+
+Queue a background loop over an explicit `job_ids` list. Already-published jobs are included when `republish` is `true`.
+
+**Request body**
+
+```json
+{
+  "job_ids": ["job_am_53227", "job_am_53228"],
+  "target_channels": ["@huntjobarmenia"],
+  "language": "English",
+  "republish": true
+}
+```
+
+**Response `200`**: `{ "status": "started", "pending": 2, "republish": true, … }` — **400** if `job_ids` is empty. `status: idle` when every id is missing or already published without `republish`.
+
+---
+
 ### `GET /api/channels`
 
 List destination admin channels persisted in `channels.json`.

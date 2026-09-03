@@ -147,6 +147,28 @@ export async function publishAllPending({
   return parseResponse(res)
 }
 
+export async function publishSelectedJobs({
+  jobIds,
+  targetChannels,
+  language = 'English',
+  republish = false,
+  delaySeconds,
+} = {}) {
+  const channels = asChannelList(targetChannels)
+  const res = await fetch('/api/jobs/publish-selected', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      job_ids: (jobIds || []).filter(Boolean),
+      target_channels: channels,
+      language,
+      republish: Boolean(republish),
+      ...(delaySeconds != null ? { delay_seconds: delaySeconds } : {}),
+    }),
+  })
+  return parseResponse(res)
+}
+
 export async function fetchTelegramStatus() {
   const res = await fetch('/api/telegram/status')
   return parseResponse(res)
