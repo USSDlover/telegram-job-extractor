@@ -87,6 +87,17 @@ Open the Vite URL (usually http://127.0.0.1:5173).
 | `POST` | `/api/extract` | Start background scrape/extract |
 | `GET` | `/api/jobs?category=` | List jobs (newest first) |
 | `GET` | `/api/categories` | Distinct stored categories |
+| `GET` | `/api/channels` | List saved destination admin channels |
+| `POST` | `/api/channels` | Add a destination channel (`name` + `@handle`) |
+| `DELETE` | `/api/channels/{id}` | Remove a saved destination channel |
+| `PATCH` | `/api/channels/{id}/default` | Toggle the default-publish flag |
+| `PATCH` | `/api/channels/{id}/language` | Set a channel's default publish language |
+| `POST` | `/api/jobs/{id}/publish` | Post one job (`target_channels` + `language`) |
+| `POST` | `/api/jobs/publish-all-pending` | Post all unpublished jobs (rate-limited) |
+| `GET` | `/api/telegram/status` | Telethon session health + target channel |
+| `GET` | `/api/telegram/admin-channels` | Channels the session can post to (legacy discovery) |
+| `GET` | `/api/telegram/stats` | Channel subscribers / views / published count |
+| `POST` | `/api/telegram/broadcast` | Send a custom Markdown announcement |
 
 See [docs/SYSTEM.md](docs/SYSTEM.md) for schemas and architecture.
 
@@ -96,5 +107,6 @@ See [docs/SYSTEM.md](docs/SYSTEM.md) for schemas and architecture.
 backend/     FastAPI, Telethon, Ollama extractor, JSON storage
 frontend/    React (Vite) ControlPanel + JobDashboard
 docs/        SYSTEM.md, PROGRESS.md
-jobs.json    Persisted extractions jobs
+jobs.json      Persisted extracted jobs
+channels.json  Saved destination admin channels
 ```
