@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  addScraperChannel,
+  deleteScraperChannel,
   discoverChannels,
   fetchCategories,
+  fetchScraperChannels,
   startExtraction,
   stopExtraction,
 } from '../api'
@@ -65,7 +68,12 @@ function normalizeChannelInput(raw) {
 export default function ControlPanel({ onExtractionStarted }) {
   const { liveStatus, pipelineBusy, latestByStage } = useActivity()
   const [channelInput, setChannelInput] = useState('')
-  const [channels, setChannels] = useState([])
+  const [channelNameInput, setChannelNameInput] = useState('')
+  const [scraperChannels, setScraperChannels] = useState([])
+  const [selectedChannelIds, setSelectedChannelIds] = useState([])
+  const [channelsLoading, setChannelsLoading] = useState(true)
+  const [addingChannel, setAddingChannel] = useState(false)
+  const [removingChannelId, setRemovingChannelId] = useState('')
   const [storedCategories, setStoredCategories] = useState([])
   const [discoveredCategories, setDiscoveredCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
@@ -93,9 +101,29 @@ export default function ControlPanel({ onExtractionStarted }) {
     }
   }, [])
 
+  const loadScraperChannels = useCallback(async () => {
+    setChannelsLoading(true)
+    try {
+      const data = await fetchScraperChannels()
+      const list = data.channels || []
+      setScraperChannels(list)
+      setSelectedChannelIds((prev) => {
+        const valid = new Set(list.map((item) => item.id))
+        const kept = prev.filter((id) => valid.has(id))
+        if (kept.length) return kept
+        return list.map((item) => item.id)
+      })
+    } catch (err) {
+      setError(err.message || 'Failed to load source channels')
+    } finally {
+      setChannelsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     loadStoredCategories()
-  }, [loadStoredCategories])
+    loadScraperChannels()
+  }, [loadStoredCategories, loadScraperChannels])
 
   const categoryOptions = useMemo(
     () => mergeLabels(discoveredCategories, storedCategories),
@@ -151,36 +179,90 @@ export default function ControlPanel({ onExtractionStarted }) {
     if (latestByStage.JOB_SAVED?.ts) loadStoredCategories()
   }, [latestByStage.JOB_SAVED, loadStoredCategories])
 
-  function addChannels() {
-    const next = normalizeChannelInput(channelInput)
-    if (!next.length) return
-    setChannels((prev) => {
-      const seen = new Set(prev.map((c) => c.toLowerCase()))
-      const merged = [...prev]
-      next.forEach((c) => {
-        if (!seen.has(c.toLowerCase())) {
-          seen.add(c.toLowerCase())
-          merged.push(c)
-        }
-      })
-      return merged
-    })
-    setChannelInput('')
+  const selectedHandles = useMemo(
+    () =>
+      scraperChannels
+        .filter((channel) => selectedChannelIds.includes(channel.id))
+        .map((channel) => channel.handle)
+        .filter(Boolean),
+    [scraperChannels, selectedChannelIds],
+  )
+
+  function toggleChannelSelected(channelId) {
+    setSelectedChannelIds((prev) => toggleValue(prev, channelId))
   }
 
-  function removeChannel(name) {
-    setChannels((prev) => prev.filter((c) => c !== name))
+  function selectAllChannels() {
+    setSelectedChannelIds(scraperChannels.map((channel) => channel.id))
+  }
+
+  function deselectAllChannels() {
+    setSelectedChannelIds([])
+  }
+
+  async function addChannels() {
+    const next = normalizeChannelInput(channelInput)
+    if (!next.length) return
+    const sharedName = channelNameInput.trim()
+    setAddingChannel(true)
+    setError('')
+    try {
+      let latest = scraperChannels
+      const addedIds = []
+      for (const handle of next) {
+        const result = await addScraperChannel({
+          handle,
+          name: next.length === 1 ? sharedName || undefined : undefined,
+        })
+        latest = result.channels || latest
+        if (result.channel?.id) addedIds.push(result.channel.id)
+      }
+      setScraperChannels(latest)
+      setSelectedChannelIds((prev) => {
+        const merged = new Set(prev)
+        addedIds.forEach((id) => merged.add(id))
+        if (!merged.size) latest.forEach((item) => merged.add(item.id))
+        return [...merged]
+      })
+      setChannelInput('')
+      setChannelNameInput('')
+    } catch (err) {
+      setError(err.message || 'Failed to save source channel')
+    } finally {
+      setAddingChannel(false)
+    }
+  }
+
+  async function removeChannel(channel) {
+    if (!channel?.id) return
+    const ok = window.confirm(`Remove source channel “${channel.name || channel.handle}”?`)
+    if (!ok) return
+    setRemovingChannelId(channel.id)
+    setError('')
+    try {
+      await deleteScraperChannel(channel.id)
+      setScraperChannels((prev) => prev.filter((item) => item.id !== channel.id))
+      setSelectedChannelIds((prev) => prev.filter((id) => id !== channel.id))
+    } catch (err) {
+      setError(err.message || 'Failed to remove source channel')
+    } finally {
+      setRemovingChannelId('')
+    }
   }
 
   async function handleDiscover() {
     setError('')
     setStatus('')
+    if (!selectedHandles.length) {
+      setError('Select at least one saved source channel.')
+      return
+    }
     setDiscovering(true)
     setBusy(true)
     setBusyHint('Joining channels and sampling posts…')
     setDiscoveryDone(false)
     try {
-      const data = await discoverChannels(channels)
+      const data = await discoverChannels(selectedHandles)
       const cats = dedupeLabels(data.discovered_categories || [])
       setDiscoveredCategories(cats)
       setSelectedCategories([])
@@ -217,6 +299,10 @@ export default function ControlPanel({ onExtractionStarted }) {
   async function handleExtract() {
     setError('')
     setStatus('')
+    if (!selectedHandles.length) {
+      setError('Select at least one saved source channel.')
+      return
+    }
     if (extractPreset === 'custom' && !extractStartDate && !extractEndDate) {
       setError('Choose a custom start and/or end date before extracting.')
       return
@@ -227,7 +313,7 @@ export default function ControlPanel({ onExtractionStarted }) {
     setStopping(false)
     setIsExtracting(true)
     try {
-      const data = await startExtraction(channels, selectedCategories, {
+      const data = await startExtraction(selectedHandles, selectedCategories, {
         datePreset: extractPreset,
         startDate: extractPreset === 'custom' ? extractStartDate || undefined : undefined,
         endDate: extractPreset === 'custom' ? extractEndDate || undefined : undefined,
@@ -244,7 +330,7 @@ export default function ControlPanel({ onExtractionStarted }) {
   }
 
   const locked = busy || discovering || (pipelineBusy && !isExtracting)
-  const startDisabled = busy || discovering || isExtracting || channels.length === 0
+  const startDisabled = busy || discovering || isExtracting || selectedHandles.length === 0
   const progress = latestByStage.EXTRACTION_PROGRESS?.data
   const channelProgress = latestByStage.EXTRACTION_STARTED?.data
   const progressLabel = stopping
@@ -267,11 +353,18 @@ export default function ControlPanel({ onExtractionStarted }) {
       <div className="workflow-step">
         <h3 className="step-title">1. Channels & discovery</h3>
         <label className="field">
-          <span>Add channel</span>
-          <div className="channel-add-row">
+          <span>Save source channel</span>
+          <div className="channel-add-row scraper-add-row">
             <input
               type="text"
-              placeholder="@tech_jobs, @remote_work"
+              placeholder="Name (optional)"
+              value={channelNameInput}
+              onChange={(e) => setChannelNameInput(e.target.value)}
+              disabled={locked || isExtracting || addingChannel}
+            />
+            <input
+              type="text"
+              placeholder="@job_am or https://t.me/job_am"
               value={channelInput}
               onChange={(e) => setChannelInput(e.target.value)}
               onKeyDown={(e) => {
@@ -280,46 +373,91 @@ export default function ControlPanel({ onExtractionStarted }) {
                   addChannels()
                 }
               }}
-              disabled={locked || isExtracting}
+              disabled={locked || isExtracting || addingChannel}
             />
             <button
               type="button"
               className="btn"
               onClick={addChannels}
-              disabled={locked || isExtracting || !channelInput.trim()}
+              disabled={locked || isExtracting || addingChannel || !channelInput.trim()}
             >
-              Add Channel
+              {addingChannel ? 'Saving…' : 'Add Channel'}
             </button>
           </div>
         </label>
 
-        {channels.length > 0 ? (
-          <div className="channel-chips">
-            {channels.map((ch) => (
-              <span key={ch} className="channel-chip">
-                {ch}
-                <button
-                  type="button"
-                  className="chip-remove"
-                  aria-label={`Remove ${ch}`}
-                  onClick={() => removeChannel(ch)}
-                  disabled={locked || isExtracting}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
+        <fieldset className="option-box scraper-channel-box">
+          <legend>Source channels ({scraperChannels.length})</legend>
+          <p className="muted option-hint">
+            Saved scrape sources persist on the server. Check the channels to use for discovery and
+            extraction.
+          </p>
+          <div className="option-toolbar">
+            <button
+              type="button"
+              className="btn tiny"
+              disabled={locked || isExtracting || scraperChannels.length === 0}
+              onClick={selectAllChannels}
+            >
+              Select All
+            </button>
+            <button
+              type="button"
+              className="btn tiny"
+              disabled={locked || isExtracting || selectedChannelIds.length === 0}
+              onClick={deselectAllChannels}
+            >
+              Deselect All
+            </button>
+            <span className="muted tiny-count">
+              {selectedHandles.length} selected
+              {scraperChannels.length ? ` · ${scraperChannels.length} saved` : ''}
+            </span>
           </div>
-        ) : (
-          <p className="muted">No channels yet — add one or more usernames above.</p>
-        )}
+          {channelsLoading ? (
+            <p className="muted">Loading saved source channels…</p>
+          ) : scraperChannels.length === 0 ? (
+            <p className="muted">No source channels yet — add a handle above to persist it.</p>
+          ) : (
+            <ul className="scraper-channel-list" aria-label="Source scrape channels">
+              {scraperChannels.map((channel) => {
+                const checked = selectedChannelIds.includes(channel.id)
+                return (
+                  <li key={channel.id}>
+                    <label className={`scraper-channel-row ${checked ? 'on' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleChannelSelected(channel.id)}
+                        disabled={locked || isExtracting}
+                      />
+                      <span className="scraper-channel-copy">
+                        <strong>{channel.name || channel.handle}</strong>
+                        <span>{channel.handle}</span>
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      className="btn tiny danger-outline"
+                      onClick={() => removeChannel(channel)}
+                      disabled={locked || isExtracting || removingChannelId === channel.id}
+                      aria-label={`Remove ${channel.handle}`}
+                    >
+                      {removingChannelId === channel.id ? '…' : 'Remove'}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </fieldset>
 
         <div className="actions">
           <button
             type="button"
             className="btn primary"
             onClick={handleDiscover}
-            disabled={locked || isExtracting || channels.length === 0}
+            disabled={locked || isExtracting || selectedHandles.length === 0}
           >
             {discovering ? (
               <>

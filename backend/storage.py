@@ -1,4 +1,4 @@
-"""Async JSON persistence for extracted jobs, admin channels, and debug samples."""
+"""Async JSON persistence for extracted jobs, admin channels, scraper sources, and debug samples."""
 
 from __future__ import annotations
 
@@ -16,8 +16,10 @@ from config import settings
 _lock = asyncio.Lock()
 _debug_lock = asyncio.Lock()
 _channels_lock = asyncio.Lock()
+_scraper_lock = asyncio.Lock()
 _PUNCT_TRIM = re.compile(r"^[\s\-–—|:;,.]+|[\s\-–—|:;,.]+$")
 _CHANNEL_ID_RE = re.compile(r"^c(\d+)$")
+_SCRAPER_CHANNEL_ID_RE = re.compile(r"^s(\d+)$")
 
 
 def normalize_label(value: str | None) -> str:
@@ -796,3 +798,122 @@ async def set_channel_language(channel_id: str, default_language: str) -> dict[s
             return None
         await _write_channels_unlocked(existing)
         return dict(updated)
+
+
+def _apply_scraper_channel_defaults(
+    channel: dict[str, Any],
+    *,
+    fallback_id: str = "s1",
+) -> dict[str, Any]:
+    handle = normalize_channel_handle(channel.get("handle") or channel.get("username"))
+    name = str(channel.get("name") or channel.get("title") or "").strip()
+    if not name and handle:
+        name = handle.lstrip("@")
+    channel_id = str(channel.get("id") or "").strip() or fallback_id
+    return {
+        "id": channel_id,
+        "name": name or handle or channel_id,
+        "handle": handle,
+    }
+
+
+def _next_scraper_channel_id(existing: list[dict[str, Any]]) -> str:
+    highest = 0
+    for channel in existing:
+        match = _SCRAPER_CHANNEL_ID_RE.match(str(channel.get("id") or ""))
+        if match:
+            highest = max(highest, int(match.group(1)))
+    return f"s{highest + 1}"
+
+
+def _ensure_scraper_channels_file(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        path.write_text("[]", encoding="utf-8")
+
+
+async def _read_scraper_channels_unlocked() -> list[dict[str, Any]]:
+    path = settings.scraper_channels_file
+    _ensure_scraper_channels_file(path)
+    async with aiofiles.open(path, "r", encoding="utf-8") as f:
+        raw = await f.read()
+    try:
+        data = json.loads(raw or "[]")
+        if not isinstance(data, list):
+            data = []
+    except json.JSONDecodeError:
+        data = []
+
+    channels: list[dict[str, Any]] = []
+    seen_handles: set[str] = set()
+    for index, item in enumerate(data, start=1):
+        if not isinstance(item, dict):
+            continue
+        record = _apply_scraper_channel_defaults(item, fallback_id=f"s{index}")
+        if not record["handle"]:
+            continue
+        key = record["handle"].casefold()
+        if key in seen_handles:
+            continue
+        seen_handles.add(key)
+        channels.append(record)
+    return channels
+
+
+async def _write_scraper_channels_unlocked(channels: list[dict[str, Any]]) -> None:
+    path = settings.scraper_channels_file
+    _ensure_scraper_channels_file(path)
+    payload = json.dumps(channels, ensure_ascii=False, indent=2)
+    tmp = path.with_suffix(".json.tmp")
+    async with aiofiles.open(tmp, "w", encoding="utf-8") as f:
+        await f.write(payload)
+    tmp.replace(path)
+
+
+async def get_scraper_channels() -> list[dict[str, Any]]:
+    """Return saved source scrape channels from scraper_channels.json."""
+    async with _scraper_lock:
+        return await _read_scraper_channels_unlocked()
+
+
+async def add_scraper_channel(handle: str, name: str | None = None) -> dict[str, Any]:
+    """
+    Append a source scrape channel. Handle is normalized with a leading `@`.
+    Raises ValueError when the handle is missing or already saved.
+    """
+    cleaned_handle = normalize_channel_handle(handle)
+    cleaned_name = str(name or "").strip() or cleaned_handle.lstrip("@")
+    if not cleaned_handle:
+        raise ValueError("Channel handle is required (for example @job_am)")
+    if not cleaned_name:
+        raise ValueError("Channel name is required")
+
+    async with _scraper_lock:
+        existing = await _read_scraper_channels_unlocked()
+        if any(
+            str(item.get("handle") or "").casefold() == cleaned_handle.casefold()
+            for item in existing
+        ):
+            raise ValueError(f"Source channel {cleaned_handle} is already saved")
+        record = {
+            "id": _next_scraper_channel_id(existing),
+            "name": cleaned_name,
+            "handle": cleaned_handle,
+        }
+        existing.append(record)
+        await _write_scraper_channels_unlocked(existing)
+        return record
+
+
+async def delete_scraper_channel(channel_id: str) -> bool:
+    """Remove a saved source scrape channel by id. Returns True if deleted."""
+    needle = str(channel_id or "").strip()
+    if not needle:
+        return False
+    async with _scraper_lock:
+        existing = await _read_scraper_channels_unlocked()
+        kept = [item for item in existing if str(item.get("id") or "") != needle]
+        if len(kept) == len(existing):
+            return False
+        await _write_scraper_channels_unlocked(kept)
+        return True

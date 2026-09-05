@@ -45,6 +45,10 @@ class Settings:
             os.getenv("CHANNELS_FILE"),
             _ROOT / "channels.json",
         )
+        self.scraper_channels_file: Path = _resolve_path(
+            os.getenv("SCRAPER_CHANNELS_FILE"),
+            _ROOT / "scraper_channels.json",
+        )
         self.scrape_limit: int = int(os.getenv("SCRAPE_LIMIT", "100"))
         self.sample_limit: int = int(os.getenv("SAMPLE_LIMIT", "20"))
         # Keep discovery prompts inside a safe context window

@@ -92,6 +92,9 @@ Open the Vite URL (usually http://127.0.0.1:5173).
 | `DELETE` | `/api/channels/{id}` | Remove a saved destination channel |
 | `PATCH` | `/api/channels/{id}/default` | Toggle the default-publish flag |
 | `PATCH` | `/api/channels/{id}/language` | Set a channel's default publish language |
+| `GET` | `/api/scraper-channels` | List saved source scrape channels |
+| `POST` | `/api/scraper-channels` | Add a source channel (`handle` + optional `name`) |
+| `DELETE` | `/api/scraper-channels/{id}` | Remove a saved source channel |
 | `POST` | `/api/jobs/{id}/publish` | Post one job (`target_channels` + `language`) |
 | `POST` | `/api/jobs/publish-all-pending` | Post all unpublished jobs (rate-limited) |
 | `GET` | `/api/telegram/status` | Telethon session health + target channel |
@@ -107,6 +110,7 @@ See [docs/SYSTEM.md](docs/SYSTEM.md) for schemas and architecture.
 backend/     FastAPI, Telethon, Ollama extractor, JSON storage
 frontend/    React (Vite) ControlPanel + JobDashboard
 docs/        SYSTEM.md, PROGRESS.md
-jobs.json      Persisted extracted jobs
-channels.json  Saved destination admin channels
+jobs.json               Persisted extracted jobs
+channels.json           Saved destination admin channels
+scraper_channels.json   Saved source scrape channels
 ```

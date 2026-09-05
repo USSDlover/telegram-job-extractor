@@ -34,8 +34,10 @@ from scraper import (
 )
 from storage import (
     add_admin_channel,
+    add_scraper_channel,
     clear_all_jobs,
     delete_admin_channel,
+    delete_scraper_channel,
     delete_job,
     delete_jobs_bulk,
     get_admin_channels,
@@ -44,6 +46,7 @@ from storage import (
     get_jobs_by_ids,
     get_jobs_sorted,
     get_published_jobs,
+    get_scraper_channels,
     get_unpublished_jobs,
     mark_job_as_published,
     read_debug_samples,
@@ -104,8 +107,12 @@ async def lifespan(_app: FastAPI):
     settings.channels_file.parent.mkdir(parents=True, exist_ok=True)
     if not settings.channels_file.exists():
         settings.channels_file.write_text("[]", encoding="utf-8")
+    settings.scraper_channels_file.parent.mkdir(parents=True, exist_ok=True)
+    if not settings.scraper_channels_file.exists():
+        settings.scraper_channels_file.write_text("[]", encoding="utf-8")
     logger.info("Jobs store: %s", settings.jobs_file)
     logger.info("Channels store: %s", settings.channels_file)
+    logger.info("Scraper channels store: %s", settings.scraper_channels_file)
     yield
 
 
@@ -284,6 +291,11 @@ class ChannelLanguageRequest(BaseModel):
     default_language: str = Field(..., examples=["Persian"])
 
 
+class ScraperChannelCreateRequest(BaseModel):
+    handle: str = Field(..., min_length=1, examples=["@job_am"])
+    name: Optional[str] = Field(default=None, examples=["Job.am"])
+
+
 class PublishTargetRequest(BaseModel):
     target_channels: List[str] = Field(
         default_factory=list,
@@ -392,6 +404,32 @@ async def patch_admin_channel_language(channel_id: str, body: ChannelLanguageReq
         raise HTTPException(status_code=404, detail=f"Channel not found: {channel_id}")
     channels = await get_admin_channels()
     return {"channel": channel, "channels": channels, "total": len(channels)}
+
+
+@app.get("/api/scraper-channels")
+async def list_scraper_source_channels():
+    """Saved source channels used for discovery and extraction."""
+    channels = await get_scraper_channels()
+    return {"channels": channels, "total": len(channels)}
+
+
+@app.post("/api/scraper-channels")
+async def create_scraper_source_channel(body: ScraperChannelCreateRequest):
+    """Add a source scrape channel. Handle is cleaned and prefixed with @."""
+    try:
+        channel = await add_scraper_channel(body.handle, body.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    channels = await get_scraper_channels()
+    return {"channel": channel, "channels": channels, "total": len(channels)}
+
+
+@app.delete("/api/scraper-channels/{channel_id}")
+async def remove_scraper_source_channel(channel_id: str):
+    deleted = await delete_scraper_channel(channel_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Source channel not found: {channel_id}")
+    return {"success": True, "deleted_id": channel_id}
 
 
 @app.post("/api/jobs/publish-all-pending")

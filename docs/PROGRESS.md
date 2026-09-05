@@ -54,6 +54,7 @@
 | Job republish | Done | `republish` flag bypasses already-published skip; `publication_history` + JobCard Republish action |
 | Multi-channel header status | Done | Navbar pills from `/api/channels` + live/subscriber tooltips from `/api/telegram/stats` |
 | Publish selected jobs | Done | Toolbar action + `POST /api/jobs/publish-selected` with `job_ids` and `republish` |
+| Persistent scraper sources | Done | `scraper_channels.json` + Control Board multi-select list |
 
 ## Architectural Decisions
 
@@ -92,6 +93,7 @@
 33. **Republish already-posted jobs** — `POST /api/jobs/{id}/publish` rejects jobs with `published_to_telegram == true` unless `republish: true`. Each successful send appends `{channel, language, published_at}` rows to `publication_history` (preserved on re-extraction). Shared `JobCard` always renders a visible **🔄 Republish** button (`btn-republish`) on published cards in both the Extractor feed and Telegram Hub. `onOpenPublishModal(job, { republish: true })` opens `ChannelSelectModal` and posts `{ republish: true, target_channels, language }`. SSE uses `REPUBLISH_STARTED` plus the existing `TRANSLATING` / `JOB_PUBLISHED` stages.
 34. **Multi-channel navbar status** — The header no longer shows a single static target handle. It loads every destination from `GET /api/channels` and paints wrapping live/offline pills. `GET /api/telegram/stats` now returns a `channels[]` snapshot (reachable + subscriber count) used for hover tooltips.
 35. **Publish Selected** — Job Feed checkboxes drive `POST /api/jobs/publish-selected` with `{ job_ids, target_channels, language, republish }`. If any checked card is already published, the picker opens in republish mode so those jobs are re-sent instead of skipped.
+36. **Persistent scraper sources** — Source channels live in `scraper_channels.json` with locked CRUD (`get_scraper_channels`, `add_scraper_channel`, `delete_scraper_channel`). Control Board loads `GET /api/scraper-channels`, renders a Select All checkbox list, and sends only checked handles to discover/extract.
 
 ## Future Work
 
@@ -102,4 +104,5 @@
 - [ ] Retry / backoff policies for Ollama and Telegram rate limits
 - [ ] Export jobs as CSV
 - [x] Persist destination channel list in `channels.json` with Hub CRUD
+- [x] Persist source scrape channels in `scraper_channels.json` with Control Board multi-select
 - [ ] Optional UI panel to browse `debug_samples.json` without curling the API

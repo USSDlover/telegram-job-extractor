@@ -2,7 +2,7 @@
 
 ## Overview
 
-Single-repository application that joins Telegram channels, discovers job categories via local LLM sampling, scrapes matching posts in the background, extracts structured job data with Ollama (Gemma 2), persists results to `jobs.json`, publishes selected jobs to destination Telegram channels stored in `channels.json`, and serves a React dashboard from FastAPI.
+Single-repository application that joins Telegram channels, discovers job categories via local LLM sampling, scrapes matching posts in the background, extracts structured job data with Ollama (Gemma 2), persists results to `jobs.json`, publishes selected jobs to destination Telegram channels stored in `channels.json`, and serves a React dashboard from FastAPI. Source scrape channels persist in `scraper_channels.json`.
 
 ## System Diagram & Data Flow
 
@@ -51,7 +51,7 @@ Single-repository application that joins Telegram channels, discovers job catego
 
 ### Flow Summary
 
-1. User adds one or more channel usernames in **ControlPanel** (SSE client already connected to `/api/stream-logs`). Activity Console sits in a sticky top-right rail on desktop.
+1. User saves source scrape channels in **ControlPanel** (`GET`/`POST`/`DELETE /api/scraper-channels`). Checked handles persist in `scraper_channels.json` and are sent to discover/extract. SSE client is already connected to `/api/stream-logs`. Activity Console sits in a sticky top-right rail on desktop.
 2. `POST /api/discover` → Telethon samples each channel → aggregated texts → Gemma 2 returns unified `CategoryDiscoveryResult`; stages stream live to **ActivityConsole**.
 3. User selects categories/titles → `POST /api/extract` starts a FastAPI `BackgroundTasks` job across all channels sequentially; progress events continue over SSE.
 4. Scraper iterates each channel’s messages → extracts URLs from text, Telethon entities, and webpage previews → optionally deep-scrapes job-board pages → Gemma 2 extracts `ExtractedJob` → filter by selection → append to `jobs.json` (external apply URL preferred; `telegram_url` as fallback metadata; `published_to_telegram` defaults to `false`).
@@ -87,6 +87,43 @@ Legacy single-channel `channel` is still accepted and merged into `channels`.
 ```
 
 **Errors**: `400` invalid/empty channels; `502` Telegram/Ollama failure.
+
+---
+
+### `GET /api/scraper-channels`
+
+List persisted source scrape channels from `scraper_channels.json`.
+
+**Response `200`**
+
+```json
+{
+  "channels": [
+    { "id": "s1", "name": "Job.am", "handle": "@job_am" }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### `POST /api/scraper-channels`
+
+Add a source channel. Handle is trimmed, URL-stripped, and prefixed with `@`.
+
+**Request body**
+
+```json
+{ "handle": "job_am", "name": "Job.am" }
+```
+
+`name` is optional and defaults to the handle without `@`. **400** if the handle is missing or already saved.
+
+---
+
+### `DELETE /api/scraper-channels/{channel_id}`
+
+Remove a saved source channel. **404** if missing.
 
 ---
 
@@ -501,6 +538,7 @@ Schemas are Pydantic v2 models; Ollama is instructed to return JSON matching `mo
 | `TELEGRAM_SESSION`         | Session file basename            | `telegram_job_session` |
 | `TELEGRAM_TARGET_CHANNEL`  | Seed/fallback destination if `channels.json` is empty | (empty; e.g. `@huntjobarmenia`) |
 | `CHANNELS_FILE`            | Path to destination-channel JSON store | `../channels.json` |
+| `SCRAPER_CHANNELS_FILE`    | Path to source scrape-channel JSON store | `../scraper_channels.json` |
 | `TELEGRAM_PUBLISH_DELAY`   | Seconds between batch posts      | `2.5`                  |
 | `TELEGRAM_CHANNEL_DELAY`   | Seconds between destination channels | `1.5`              |
 | `OLLAMA_HOST`              | Ollama base URL                  | `http://127.0.0.1:11434` |
@@ -510,7 +548,7 @@ Schemas are Pydantic v2 models; Ollama is instructed to return JSON matching `mo
 
 ## Concurrency & Safety
 
-- `storage.py` uses separate `asyncio.Lock`s around read-modify-write of `jobs.json` and `channels.json`.
+- `storage.py` uses separate `asyncio.Lock`s around read-modify-write of `jobs.json`, `channels.json`, and `scraper_channels.json`.
 - Background extraction never raises into the request handler; per-message AI/Telegram errors are logged and skipped.
 - Deduplication key: `{channel}_{message_id}`.
 - Batch publish never aborts the loop on a single send failure; flood waits under 90s are retried once. The Telethon user must be an admin of each destination channel.

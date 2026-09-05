@@ -25,3 +25,5 @@ debug_samples.json.tmp
 debug_samples.json
 jobs.json
 channels.json
+scraper_channels.json
+scraper_channels.json.tmp

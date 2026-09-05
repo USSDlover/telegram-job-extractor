@@ -185,6 +185,30 @@ export async function fetchChannels() {
   return parseResponse(res)
 }
 
+export async function fetchScraperChannels() {
+  const res = await fetch('/api/scraper-channels')
+  return parseResponse(res)
+}
+
+export async function addScraperChannel({ handle, name } = {}) {
+  const res = await fetch('/api/scraper-channels', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      handle,
+      ...(name ? { name } : {}),
+    }),
+  })
+  return parseResponse(res)
+}
+
+export async function deleteScraperChannel(channelId) {
+  const res = await fetch(`/api/scraper-channels/${encodeURIComponent(channelId)}`, {
+    method: 'DELETE',
+  })
+  return parseResponse(res)
+}
+
 export async function addChannel({ name, handle, defaultLanguage = 'English' }) {
   const res = await fetch('/api/channels', {
     method: 'POST',
