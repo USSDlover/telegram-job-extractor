@@ -836,3 +836,132 @@ async def extract_job_data(message_text: str) -> Optional[ExtractedJob]:
     ]
     # Empty apply_links is OK — scraper injects Telegram message URL fallback
     return job
+
+
+PUBLISH_LANGUAGES = ("English", "Persian", "Arabic")
+_LANGUAGE_ALIASES = {
+    "en": "English",
+    "eng": "English",
+    "english": "English",
+    "fa": "Persian",
+    "fas": "Persian",
+    "farsi": "Persian",
+    "persian": "Persian",
+    "فارسی": "Persian",
+    "ar": "Arabic",
+    "ara": "Arabic",
+    "arabic": "Arabic",
+    "العربية": "Arabic",
+}
+
+
+class TranslatedText(BaseModel):
+    translation: str = ""
+
+
+class LocalizedJobFields(BaseModel):
+    title: str = ""
+    category: str = ""
+    summary: str = ""
+
+
+def normalize_publish_language(value: str | None) -> str:
+    """Map UI / API aliases onto English | Persian | Arabic."""
+    raw = str(value or "English").strip()
+    if not raw:
+        return "English"
+    return _LANGUAGE_ALIASES.get(raw.casefold(), raw if raw in PUBLISH_LANGUAGES else "English")
+
+
+def _language_prompt_name(language: str) -> str:
+    if language == "Persian":
+        return "Persian (Farsi / فارسی)"
+    if language == "Arabic":
+        return "Arabic (العربية)"
+    return "English"
+
+
+async def translate_job_summary(summary: str, target_language: str) -> str:
+    """
+    Translate a job summary with local Gemma 2 via Ollama.
+    English is returned unchanged. On model failure the original text is kept.
+    """
+    text = re.sub(r"\s+", " ", str(summary or "").strip())
+    language = normalize_publish_language(target_language)
+    if not text or language == "English":
+        return text
+
+    system = (
+        "You are a professional job-post translator.\n"
+        f"Translate the given job summary into fluent {_language_prompt_name(language)}.\n"
+        "Rules:\n"
+        "1. Keep meaning, tone, and facts. Do not add or invent requirements.\n"
+        "2. Use native script (Persian: فارسی, Arabic: العربية). No transliteration.\n"
+        "3. Keep URLs, emails, and brand/company names unchanged.\n"
+        "4. Return ONLY JSON matching the schema."
+    )
+    user = f"Target language: {language}\n\nSummary:\n{text[:2500]}"
+    schema = TranslatedText.model_json_schema()
+    try:
+        raw, _, _ = await _ollama_chat_json(system, user, schema)
+        translated = TranslatedText.model_validate(raw).translation.strip()
+        return translated or text
+    except (httpx.HTTPError, json.JSONDecodeError, ValidationError, KeyError) as exc:
+        logger.warning("Job summary translation to %s failed: %s", language, exc)
+        await broadcast_log(
+            "ERROR",
+            f"Translation to {language} failed; posting the original English summary. {exc}",
+            {"language": language, "model": settings.ollama_model},
+        )
+        return text
+
+
+async def localize_job_for_publish(job: dict[str, Any], target_language: str) -> dict[str, Any]:
+    """
+    Return a shallow copy of a job with title, category, and summary localized.
+    Uses one Ollama call; falls back to translate_job_summary for the summary only.
+    """
+    language = normalize_publish_language(target_language)
+    localized = dict(job or {})
+    localized["publish_language"] = language
+    localized.setdefault("source_category", str(localized.get("category") or ""))
+    if language == "English":
+        return localized
+
+    title = str(localized.get("title") or "").strip()
+    category = str(localized.get("category") or "").strip()
+    summary = str(localized.get("translated_summary") or "").strip()
+
+    system = (
+        "You are a professional job-post translator.\n"
+        f"Translate title, category, and summary into fluent {_language_prompt_name(language)}.\n"
+        "Rules:\n"
+        "1. Keep meaning and facts. Do not invent details.\n"
+        "2. Use native script. No transliteration of the translated fields.\n"
+        "3. Keep company names, URLs, and emails unchanged when they appear in the summary.\n"
+        "4. Category should stay a short professional label.\n"
+        "5. Return ONLY JSON matching the schema."
+    )
+    user = (
+        f"Target language: {language}\n\n"
+        f"Title: {title}\n"
+        f"Category: {category}\n"
+        f"Summary: {summary[:2500]}"
+    )
+    schema = LocalizedJobFields.model_json_schema()
+    try:
+        raw, _, _ = await _ollama_chat_json(system, user, schema)
+        fields = LocalizedJobFields.model_validate(raw)
+        if fields.title.strip():
+            localized["title"] = fields.title.strip()
+        if fields.category.strip():
+            localized["category"] = fields.category.strip()
+        if fields.summary.strip():
+            localized["translated_summary"] = fields.summary.strip()
+        else:
+            localized["translated_summary"] = await translate_job_summary(summary, language)
+        return localized
+    except (httpx.HTTPError, json.JSONDecodeError, ValidationError, KeyError) as exc:
+        logger.warning("Full job localization to %s failed: %s", language, exc)
+        localized["translated_summary"] = await translate_job_summary(summary, language)
+        return localized

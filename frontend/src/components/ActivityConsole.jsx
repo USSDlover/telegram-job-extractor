@@ -17,6 +17,19 @@ const STAGE_META = {
   EXTRACTION_DONE: { label: 'Success', tone: 'success' },
   EXTRACTION_STOP_REQUESTED: { label: 'Stop', tone: 'warn' },
   EXTRACTION_STOPPED: { label: 'Stopped', tone: 'error' },
+  TRANSLATING: { label: 'Translate', tone: 'ollama' },
+  TRANSLATION_DONE: { label: 'Translate', tone: 'success' },
+  PUBLISH_STARTED: { label: 'Publish', tone: 'telegram' },
+  REPUBLISH_STARTED: { label: 'Republish', tone: 'telegram' },
+  PUBLISH_PROGRESS: { label: 'Publish', tone: 'telegram' },
+  PUBLISH_BATCH_QUEUED: { label: 'Publish', tone: 'info' },
+  PUBLISH_BATCH_STARTED: { label: 'Publish', tone: 'telegram' },
+  PUBLISH_BATCH_DONE: { label: 'Success', tone: 'success' },
+  PUBLISH_FLOOD_WAIT: { label: 'Rate limit', tone: 'warn' },
+  JOB_PUBLISHED: { label: 'Published', tone: 'success' },
+  BROADCAST_STARTED: { label: 'Broadcast', tone: 'telegram' },
+  BROADCAST_SENT: { label: 'Success', tone: 'success' },
+  STATS_FALLBACK: { label: 'Stats', tone: 'warn' },
   ERROR: { label: 'Error', tone: 'error' },
 }
 
@@ -134,7 +147,11 @@ function ActivityRow({ entry, idx, isLatest }) {
     entry.stage === 'EXTRACTION_PROGRESS' ||
     entry.stage === 'JOINING_TELEGRAM' ||
     entry.stage === 'FETCHING_POSTS' ||
-    entry.stage === 'LINK_SCRAPER'
+    entry.stage === 'LINK_SCRAPER' ||
+    entry.stage === 'TRANSLATING' ||
+    entry.stage === 'PUBLISH_STARTED' ||
+    entry.stage === 'PUBLISH_PROGRESS' ||
+    entry.stage === 'BROADCAST_STARTED'
   const expandable = isExpandable(entry)
   const [expanded, setExpanded] = useState(false)
   const emptyTone = entry.data?.empty_result ? 'empty' : ''

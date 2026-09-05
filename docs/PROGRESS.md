@@ -41,6 +41,20 @@
 | Prompt noise sanitization | Done | Clean Post N + URL Slug lines for Gemma |
 | URL slug category fallback | Done | Deterministic slug map when LLM returns 0 |
 | Bulk select / delete jobs | Done | Checkboxes + `POST /api/jobs/bulk-delete` |
+| Telegram job publisher | Done | `publisher.py` Markdown posts to `TELEGRAM_TARGET_CHANNEL` |
+| Publish state flag | Done | `published_to_telegram` on each `jobs.json` record |
+| Publish APIs | Done | `POST /api/jobs/{id}/publish` + `publish-all-pending` |
+| Navbar + Channel Hub UI | Done | Extractor / Hub tabs, session badge, analytics widgets |
+| Publish actions in Job Feed | Done | Pending/Published badges + publish one / publish all |
+| Channel stats + broadcast API | Done | `GET /api/telegram/stats`, `POST /api/telegram/broadcast` |
+| Publish channel picker | Done | Modal + `target_channel` JSON body + localStorage recents |
+| Multi-channel publish | Done | Admin-channel checkboxes + `target_channels` fan-out |
+| Destination channel CRUD | Done | `channels.json` + `/api/channels` + ChannelManager UI |
+| Publish language translation | Done | English / Persian / Arabic via Gemma 2 + modal radios |
+| Job republish | Done | `republish` flag bypasses already-published skip; `publication_history` + JobCard Republish action |
+| Multi-channel header status | Done | Navbar pills from `/api/channels` + live/subscriber tooltips from `/api/telegram/stats` |
+| Publish selected jobs | Done | Toolbar action + `POST /api/jobs/publish-selected` with `job_ids` and `republish` |
+| Persistent scraper sources | Done | `scraper_channels.json` + Control Board multi-select list |
 
 ## Architectural Decisions
 
@@ -70,6 +84,16 @@
 24. **Translate-first short HY/RU posts** — Discovery and extraction prompts require Armenian/Russian → English before classification, treat 1–5 word title+link posts as valid jobs, and force link-preview enrichment for short non-English captions with URLs.
 25. **Sanitized discovery prompts + slug fallback** — Noisy `[Telegram Message]` / link-metadata blocks are stripped into `Post N: title (URL Slug: …)` lines. `extract_keywords_from_urls()` maps job.am-style slugs (e.g. `vacharqi-menejer` → Sales) and a **Fallback Engine** fills categories when Gemma returns empty.
 26. **Bulk job selection** — Job Feed checkboxes + Select All toolbar call `POST /api/jobs/bulk-delete` with confirmed multi-id removal under the storage lock.
+27. **Outbound Telegram publisher** — `publisher.py` reuses the Telethon session to post Markdown job cards to `TELEGRAM_TARGET_CHANNEL`. `published_to_telegram` is stored on each job, set atomically after a successful send, and preserved across re-extraction. Batch publish walks unpublished jobs sequentially with a configurable delay; one failed post is SSE-logged and skipped.
+28. **Channel Hub UI** — Sticky navbar tabs switch Extractor vs Telegram Hub. Hub widgets read `GetFullChannelRequest` (with fallback), list published jobs, and send manual Markdown broadcasts. Job cards expose publish status and actions; `JOB_PUBLISHED` refreshes both views via the SSE bus.
+29. **Publish channel picker** — `ChannelSelectModal` asks for destinations before single or bulk publish. It portals to `document.body`, loads `GET /api/channels` on open, default-checks `is_default` rows, and posts `{ "target_channels": ["@handle"] }`.
+30. **Multi-destination publish** — Publish APIs accept `target_channels` and post sequentially with a 1.5s inter-channel delay. An empty list falls back to `is_default` rows in `channels.json`.
+31. **Persisted destination channels** — Admin destinations live in `channels.json` with locked CRUD helpers (`get_admin_channels`, `add_admin_channel`, `delete_admin_channel`, `toggle_default_channel`). Telegram Hub exposes a Manage Channels table. `TELEGRAM_TARGET_CHANNEL` only seeds an empty store.
+32. **Publish-time translation** — `translate_job_summary` / `localize_job_for_publish` run Gemma 2 when `language` is Persian or Arabic. Telegram cards get language badges, translated labels, and RTL marks. Channel records store `default_language` so the picker radio pre-selects.
+33. **Republish already-posted jobs** — `POST /api/jobs/{id}/publish` rejects jobs with `published_to_telegram == true` unless `republish: true`. Each successful send appends `{channel, language, published_at}` rows to `publication_history` (preserved on re-extraction). Shared `JobCard` always renders a visible **🔄 Republish** button (`btn-republish`) on published cards in both the Extractor feed and Telegram Hub. `onOpenPublishModal(job, { republish: true })` opens `ChannelSelectModal` and posts `{ republish: true, target_channels, language }`. SSE uses `REPUBLISH_STARTED` plus the existing `TRANSLATING` / `JOB_PUBLISHED` stages.
+34. **Multi-channel navbar status** — The header no longer shows a single static target handle. It loads every destination from `GET /api/channels` and paints wrapping live/offline pills. `GET /api/telegram/stats` now returns a `channels[]` snapshot (reachable + subscriber count) used for hover tooltips.
+35. **Publish Selected** — Job Feed checkboxes drive `POST /api/jobs/publish-selected` with `{ job_ids, target_channels, language, republish }`. If any checked card is already published, the picker opens in republish mode so those jobs are re-sent instead of skipped.
+36. **Persistent scraper sources** — Source channels live in `scraper_channels.json` with locked CRUD (`get_scraper_channels`, `add_scraper_channel`, `delete_scraper_channel`). Control Board loads `GET /api/scraper-channels`, renders a Select All checkbox list, and sends only checked handles to discover/extract.
 
 ## Future Work
 
@@ -79,5 +103,6 @@
 - [ ] Session login helper UI for first-time Telethon auth
 - [ ] Retry / backoff policies for Ollama and Telegram rate limits
 - [ ] Export jobs as CSV
-- [ ] Persist channel list across sessions (localStorage / backend config)
+- [x] Persist destination channel list in `channels.json` with Hub CRUD
+- [x] Persist source scrape channels in `scraper_channels.json` with Control Board multi-select
 - [ ] Optional UI panel to browse `debug_samples.json` without curling the API

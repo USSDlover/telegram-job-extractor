@@ -19,7 +19,11 @@ Thumbs.db
 # Temp
 *.tmp
 jobs.json.tmp
+channels.json.tmp
 backend/requirements_full.txt
 debug_samples.json.tmp
 debug_samples.json
 jobs.json
+channels.json
+scraper_channels.json
+scraper_channels.json.tmp
